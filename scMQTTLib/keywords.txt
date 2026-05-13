@@ -1,0 +1,22 @@
+#######################################
+# Identificadores Classes
+#######################################
+scMQTTLib	KEYWORD1
+
+#######################################
+# Metodos 
+#######################################
+iniciar	KEYWORD2
+manterConexao	KEYWORD2
+temComando	KEYWORD2
+obterComando	KEYWORD2
+enviar JSON	KEYWORD2
+enviar	KEYWORD2
+
+#######################################
+# Constantes
+#######################################
+
+
+
+
