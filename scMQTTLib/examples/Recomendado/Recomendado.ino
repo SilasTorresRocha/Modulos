@@ -55,6 +55,18 @@ void loop() {
   // Obrigatório: Mantém a conexão MQTT ativa e recebe as mensagens internamente
   mqtt_sc.manterConexao();
 
+  // VERIFICAÇÃO DE REDE E FALLBACK
+  if (WiFi.status() != WL_CONNECTED) {
+    // CENÁRIO 1: Roteador desligado ou longe demais
+    // ativarModoEmergenciaFallback();
+  } else if (!mqtt_sc.internetDisponivel()) {
+    // CENÁRIO 2: Roteador ligado, mas a rua está sem internet (Sem Nuvem)
+    // ativarModoEmergenciaFallback();
+  } else {
+    // CENÁRIO 3: Tudo perfeito, fluxo normal
+    // desativarModoEmergenciaFallback();
+  }
+
   // RECEBE COMANDOS
   if (mqtt_sc.temComando()) {
     String comando = mqtt_sc.obterComando();

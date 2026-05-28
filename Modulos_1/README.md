@@ -25,8 +25,16 @@
     2.  Completo: Mostra Temperatura, Nível de Gás e Horário constantemente.
     3.  Essencial: Mostra apenas Temperatura e Gás.
 
-## Temporizadores
-*   **Forno:** O usuário pode configurar remotamente um tempo limite no qual o forno deveria ficar ligado (ex: 30 minutos). Fim do tempo gera um disparo do Buzzer e envia notificação via MQTT.
+## Lógica de Detecção Dupla (Forno Ligado)
+Como o Módulo 1 é apenas sensorial e não possui relé cortando a energia do forno, a inferência de que o forno foi ligado (para disparar temporizadores) ocorre por dois métodos simultâneos, garantindo altíssima precisão:
+1.  **Derivada Térmica (Taxa de Variação):** Mede a velocidade do aquecimento em Graus/Segundo (°C/s). Se a temperatura subir abruptamente fora de um padrão climático normal, ele deduz o acionamento e liga o timer. *(Nota Técnica: O M1 não possui RTC de hardware, então o cálculo do delta-t usará a função nativa `millis()`. A precisão da derivada pode ter micro-variações dependendo da carga do super-loop, mas para a detecção térmica de um forno, isso é completamente irrelevante e tolerável).*
+2.  **Ponto de Ruptura Absoluta:** Como dias muitos frios podem mascarar a taxa de variação inicial, se a temperatura ambiente ultrapassar um limite absoluto insalubre (ex: 55°C), o sistema força o estado de "Forno Ligado", independentemente da taxa de variação.
 
-## INFOS
-*   **NOTA:** Esses sistema tem 1 tempo para alames e 1 tempo de alarme critipo, um e para alarmer de preparo de alimento e outro para controle de prevenção conta esquecimento de forno ligado. Ampos podem ser configurados remotamente pelo Backend (Web) ou Módulo 3.
+## Temporizadores
+*   **NOTA:** O sistema possui dois alarmes temporizados independentes que podem ser configurados remotamente:
+    *   **Alarme de Preparo:** Timer clássico para lembrar de tirar a comida do forno.
+    *   **Alarme Crítico (Esquecimento):** Controle de segurança que dispara o Buzzer como sirene e alerta a casa toda se o forno permanecer ligado além do tempo máximo permitido (ex: 2 horas ininterruptas), assumindo que o usuário esqueceu o equipamento ligado.
+
+## Ação Reativa Direta P2P (Anti-SPOF)
+Em caso de vazamento de gás crítico, o Módulo 1 enviará seu alerta via MQTT/ESP-NOW para o Hub (Módulo 3). No entanto, para evitar que o Hub se torne um *Ponto Único de Falha (SPOF)* para reações críticas de segurança, o Módulo 1 também atirará um comando **P2P direto** via rádio ESP-NOW usando o MAC Address do Módulo 2 (conhecido via Discovery).
+*   *Importante:* O Módulo 1 apenas "Grita que tem gás" para o Módulo 2. Ele **não** ordena se o Módulo 2 vai ligar ou desligar nada. A inteligência e responsabilidade da reação fica a cargo da configuração interna do próprio Módulo 2.

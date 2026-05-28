@@ -31,3 +31,4 @@ Quando os módulos periféricos não conseguem acesso à internet, o Módulo 3 a
 1.  Escuta passivamente pacotes via `ESP-NOW` das outras placas.
 2.  Mantém a sincronização de tempo para elas (Time Server Local): Se a internet cair, o ESP32-S2 lê a hora exata do chip físico **DS3231** e a distribui pela rede local com total confiança.
 3.  Recebe telemetria crítica (ex: alerta de gás) via ESP-NOW e consegue rotear um comando reativo via ESP-NOW para o Módulo 2.
+4.  **Gateway/Bridge Obrigatório:** Em uma "Rede Mista" (onde um módulo caiu para ESP-NOW mas os outros continuam no Wi-Fi), o Backend na Nuvem não tem como ouvir o módulo caído diretamente. O Módulo 3 tem a obrigação arquitetural de receber os pacotes ESP-NOW do módulo offline, encapsulá-los e **encaminhá-los (fazer relay)** para o Broker MQTT na nuvem. Sem isso, o Dashboard Web achará que o módulo está inativo.

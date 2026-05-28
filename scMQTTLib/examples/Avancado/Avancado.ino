@@ -52,6 +52,19 @@ void loop() {
   // Obrigatório: Mantém a conexão MQTT ativa e recebe as mensagens internamente
   mqtt_sc.manterConexao();
 
+  // ---> VERIFICAÇÃO DE REDE E FALLBACK
+  if (WiFi.status() != WL_CONNECTED) {
+    // CENÁRIO 1: Roteador desligado ou longe demais (Sem Wi-Fi)
+    // ativarModoEmergenciaFallback();
+  } else if (!mqtt_sc.internetDisponivel()) {
+    // CENÁRIO 2: Roteador ligado, mas a rede está sem internet (Sem Nuvem)
+    // Opcional: Adicionar um contador aqui para não ativar o FALLBACK no primeiro milissegundo de queda
+    // ativarModoEmergenciaFallback();
+  } else {
+    // CENÁRIO 3: Tudo perfeito, fluxo normal (Conectado na Nuvem)
+    // desativarModoEmergenciaFallback();
+  }
+
   // ---> RECEBENDO COMANDOS
   // A biblioteca gerencia as mensagens e as disponibiliza de forma fácil
   // através de polling

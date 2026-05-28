@@ -19,7 +19,10 @@
 
 ## Especificidades da Interface (Sistema de Menus)
 O Módulo 2 possui o menu de interatividade física sendo o Segundo mais rico do sistema (Ficando atras apenas do Modulo Central). Utilizando Padrão de Projetos (separar UI numa biblioteca isolada), ele permite:
-*   **Agendadores de Tempo:** Agendar acionamentos (Ligar/Desligar Relé X em horário Y com alta precisão de relógio, baseada no NTP).
+*   **Agendamento Semanal (Persistência Local):** Diferente de simples temporizadores (timers de contagem regressiva), o usuário pode criar regras por dia da semana (ex: *Desligar Canal 1 do relé às 7:30 da manhã toda segunda-feira*).
+    *   *Redundância e Armazenamento:* Para evitar dependência e não falhar caso o Hub ou a Internet caiam, os agendamentos **são armazenados fisicamente na memória da placa** (EEPROM ou LittleFS do ESP8266).
+    *   *Limite de Memória:* Por limitações de hardware do chip, o módulo aceitará um limite rígido de agendamentos (ex: Máximo de 10 agendamentos ativos). Se o usuário quiser criar mais, deverá apagar os antigos.
+    *   *Descentralização Configural:* Esses agendamentos podem ser criados, cancelados ou visualizados a partir do Encoder Físico (Local), Módulo 3 (Hub) ou Web.
 *   **Estado de Retorno Pós-Queda de Energia:** O usuário pode configurar como cada relé deve se comportar quando a energia elétrica retornar:
     1.  *Sempre Ligado*
     2.  *Sempre Desligado*
@@ -27,10 +30,11 @@ O Módulo 2 possui o menu de interatividade física sendo o Segundo mais rico do
 *   **Configuração Sonora:** Ativar/Desativar som do buzzer (Modo Mute ou Som ativo para navegação nos menus).
 *   **Escolha de Tela de Idle:** Relógio Grande, GIFs animados, Mostrar Estatísticas da rede, ou Tela Desligada.
 *   **Dashboard Informativo Local:** Exibe Uptime, Relés Ativos, e **Consumo Individual e Total Estimado** em KW/h.
-    *   *Nota sobre Consumo:* O módulo monitora há quanto tempo exatamente cada relé está ligado em sua sessão atual (zerando ao desligar). Os valores acumulados de consumo (Relé 1, Relé 2 e Total) podem ser resetados/redefinidos tanto manualmente pelo menu físico, quanto remotamente pelo Módulo Central ou Backend Web. Exibe também a **Temperatura do Módulo 1** (exemplificando a integração do ecossistema).
+    *   *Nota sobre Consumo:* O cálculo matemático requer a **Potência da Carga (Watts)**. O usuário deve configurar a potência dos equipamentos conectados (ex: Exaustor = 300W) usando o Encoder Físico do Módulo ou recebendo a configuração remotamente pelo Backend/Módulo Central. O módulo monitora há quanto tempo exatamente cada relé está ligado na sessão atual e calcula o consumo com base nessa potência. Os valores acumulados de consumo podem ser resetados manualmente ou remotamente. Exibe também a **Temperatura do Módulo 1**.
+*   **Aba de Informações do Sistema (INF):** Uma página exclusiva no final do menu para não poluir as "Watch Faces" principais, contendo diagnósticos essenciais como o **MAC Address** da placa, Endereço IP e status de conexão. Isso auxilia o usuário a identificar a placa quando estiver mapeando "Apelidos" no Dashboard do Hub/Web.
 
 ## Reação a Eventos Críticos Inter-Módulos
-*   **Regra de Gás do Relé:** Nas configurações da web/central/menu, o usuário pode configurar como a carga ligada ao Relé vai reagir em caso de **Vazamento de Gás detectado pelo Módulo 1**.
+*   **Regra de Gás do Relé:** Nas configurações da web/central/menu, o usuário pode configurar como a carga ligada ao Relé vai reagir em caso de **Vazamento de Gás**. Essa regra dita a decisão do Módulo 2 quando ele receber o grito de alerta do Hub ou o grito de alerta **P2P Direto (Mesh)** do Módulo 1. A responsabilidade da ação é única do Módulo 2.
 *   **Três Modos de Ação Reativa:**
     1.  *Independente:* O Módulo 1 acionar não afeta o relé.
     2.  *Bloquear (Perigo):* O relé é impedido de ligar (ou é desligado imediatamente) pois o que está plugado gera faísca elétrica.

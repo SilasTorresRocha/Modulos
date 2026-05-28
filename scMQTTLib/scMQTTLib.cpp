@@ -172,3 +172,8 @@ bool scMQTTLib::enviar(String chave, String valor) {
   String json = "{\"" + chave + "\": \"" + valor + "\"}";
   return enviarJSON(json);
 }
+
+bool scMQTTLib::internetDisponivel() {
+  // Retorna true se a conexão TCP com o servidor na nuvem estiver ativa
+  return _clienteMQTT.connected();
+}

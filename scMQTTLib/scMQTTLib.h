@@ -58,6 +58,9 @@ public:
   // Lógica de Reconexão Automática (Watchdog/Keep-Alive)
   void manterConexao();
 
+  //Retorna o status real da conexão com a nuvem
+  bool internetDisponivel();
+
   bool temComando();
   String obterComando();
 
