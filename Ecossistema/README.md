@@ -101,3 +101,17 @@ A arquitetura sugere que a comunicação seja intermediada (via Backend ou Módu
 *   Exemplo prático (Rede Saudável): O Módulo 1 (Forno) acusa gás. O Backend ou o Módulo 3 processam esse dado e enviam imediatamente um Comando MQTT para o Módulo 2 (Relés), mandando que ele ligue o ventilador e bloqueie faíscas.
 *   **Exemplo prático (Rede Mista com Falha):** Se apenas o Módulo 1 perder o Wi-Fi, o Backend fica "cego" em relação a ele, pois não tem antena de rádio. O Módulo 1 avisa o Módulo 3 via ESP-NOW. O Módulo 3 **obrigatoriamente** traduz isso, repassa para o MQTT na nuvem (função de Gateway), e assim o Backend ou o próprio Hub podem enviar a ordem pro Módulo 2 via Wi-Fi.
 *   **Dinamicidade:** Um módulo não mostra opções no menu de algo que não existe. O Módulo 2 só terá no menu as opções "Configuração de Gás" se o Módulo 3 informar que "O Módulo 1 está Online".
+
+## 8. Bibliotecas Core (Reaproveitamento de Código)
+
+Como todos os módulos (1, 2, 3 e 4) compartilham comportamentos base idênticos, o projeto adota a criação de **Bibliotecas Core** (compartilhadas) para evitar reescrever o mesmo código repetidamente e blindar regras complexas. As principais bibliotecas a serem criadas e incluídas em todos os firmwares são:
+
+1.  **`scGestorRede` (O Motor Híbrido):** 
+    *   *Função:* Gerencia ativamente a conexão Wi-Fi e automatiza o chaveamento para ESP-NOW.
+    *   *Detalhe:* Usa a função `internetDisponivel()` da `scMQTTLib` para atestar conexão real. É ela quem faz o *scan* iterativo de canais (1 a 13) para o nó órfão encontrar o Módulo 3 (Hub) e gerencia os "pings de retorno" silenciosos para reconectar ao roteador da casa quando ele voltar.
+2.  **`scConfigOTA` (Credenciais e Persistência):** 
+    *   *Função:* Abstrai o salvamento e leitura de configurações na memória não volátil (LittleFS para ESP8266 ou NVS para ESP32).
+    *   *Detalhe:* Fica responsável por guardar fisicamente as credenciais novas de Wi-Fi, MQTT e tokens. Ela também implementa e gerencia o servidor OTA em background, garantindo que o módulo sempre consiga receber os binários `.bin` pela rede de forma transparente e segura.
+3.  **`scRelogioSincronizado` (Gestão de Tempo Global):** 
+    *   *Função:* Fornece a hora exata a qualquer momento através da função `obterHoraUnix()`.
+    *   *Detalhe:* Se a placa tem internet, a biblioteca busca e sincroniza a hora via NTP (Network Time Protocol). Se entra em modo offline, ela cessa as buscas na web, aguarda os pacotes ESP-NOW do Hub (Módulo 3, que possui o RTC DS3231 físico) e ajusta o temporizador interno mantendo a precisão para não quebrar os agendamentos.
