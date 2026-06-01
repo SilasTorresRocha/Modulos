@@ -4,6 +4,8 @@
 
 > **Nota de Dependência:** Este módulo faz parte do Ecossistema IoT. Leia o documento `Ecossistema/README.md` localizado na raiz do projeto para entender a arquitetura base.
 
+> **O Túnel de Comunicação (scMQTTLib):** É fundamental destacar que a infraestrutura de rede MQTT (`scMQTTLib`) já é um serviço externo, independente e funcional que está rodando em produção. O Backend a ser construído aqui **não implementará pontes MQTT do zero**; sua arquitetura se baseia em consumir e utilizar a API da `scMQTTLib` como seu canal de transmissão de pacotes e recepção de telemetria, mantendo as lógicas de negócio separadas do duto de transporte.
+
 ## Papel no Ecossistema
 O Backend atua como a **Interface Principal e Remota** de todo o ecossistema. Suas responsabilidades (Front-end e API) espelham as funções do Módulo 3 (Central), porém voltadas para o acesso seguro via internet e armazenamento de longo prazo (Banco de Dados).
 

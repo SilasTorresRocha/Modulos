@@ -23,4 +23,4 @@ O ecossistema é preparado para crescer de 1 para N módulos idênticos (ex: 5 M
 *   O Hub e o Backend gerenciam a tradução amigável desses MACs para os usuários (através de "Apelidos" configuráveis), mantendo o roteamento por trás dos panos sólido e imutável.
 
 ## 5. Abstração de Interface Local (Watch Faces e Info)
-Telas e displays locais (como OLEDs e TFTs) devem priorizar o design limpo (*Watch faces*). Informações técnicas e de diagnóstico (como IP, status detalhado de conexão e Endereço MAC para identificação no Hub) devem ser segregadas em abas específicas de "Informações do Sistema" (INF).
+Telas e displays locais (como OLEDs e TFTs) devem priorizar o design limpo (*Watch faces*). Informações técnicas e de diagnóstico (como IP, status detalhado de conexão e Endereço MAC para identificação no Hub) devem ser segregadas em abas específicas de "Informações do Sistema" (INF). É permitido ter múltiplas opções de watch faces para o usuário.

@@ -11,10 +11,9 @@
 
 ## Hardware Necessário
 *   **ESP-12F**
-*   **Multiplexador Analógico (ex: CD4051)**: Como o ESP8266 só possui 1 pino analógico (A0) e precisamos ler o Gás e a Temperatura simultaneamente para calibrar via web, o multiplexador chaveia o pino A0 para ler múltiplos sensores.
+*   **Sensor de Temperatura DS18B20 (Digital 1-Wire)**: Substitui o termistor analógico da ideia original. Como o ESP8266 possui apenas 1 pino analógico (A0), usar um sensor digital num pino digital comum libera o pino A0 de forma *exclusiva e ininterrupta* para a leitura crítica do Sensor de Gás. Isso simplifica o hardware eliminando a necessidade de um Multiplexador e evita atrasos no Loop causados por chaveamento de sinal analógico.
 *   **OLED I2C 0.96 in**
-*   **Sensor de Gás MQ-2** (Saída Analógica)
-*   **Termistor NTC 100K**
+*   **Sensor de Gás MQ-2** (Saída Analógica - Conectado exclusivamente no A0)
 *   **Buzzer** (Padrões de alertas definidos no Ecossistema)
 *   *(Opcional/Planejado)* Pino acionador de carga (Relé SSR) exclusivo, para ligar um exaustor localmente até o fim do vazamento de gás.
 
@@ -38,3 +37,9 @@ Como o Módulo 1 é apenas sensorial e não possui relé cortando a energia do f
 ## Ação Reativa Direta P2P (Anti-SPOF)
 Em caso de vazamento de gás crítico, o Módulo 1 enviará seu alerta via MQTT/ESP-NOW para o Hub (Módulo 3). No entanto, para evitar que o Hub se torne um *Ponto Único de Falha (SPOF)* para reações críticas de segurança, o Módulo 1 também atirará um comando **P2P direto** via rádio ESP-NOW usando o MAC Address do Módulo 2 (conhecido via Discovery).
 *   *Importante:* O Módulo 1 apenas "Grita que tem gás" para o Módulo 2. Ele **não** ordena se o Módulo 2 vai ligar ou desligar nada. A inteligência e responsabilidade da reação fica a cargo da configuração interna do próprio Módulo 2.
+
+## Versionamento OTA e Controle de Status (Aplica-se a todos os Módulos)
+Para garantir que as placas (incluindo o Módulo 1) estejam rodando a versão mais recente do firmware via atualizações OTA, a rede adota um sistema de **Polling via Comando (O Hub/Web Pergunta)** para auditar as versões.
+Isso evita o problema clássico de IoT onde a placa envia sua versão apenas no *boot* e o pacote se perde se o broker estiver reiniciando junto.
+*   **Comando `solicitar_status`:** Quando o Dashboard Web é aberto, ou em momentos de auditoria, o Backend atira o comando `solicitar_status` para a rede.
+*   **Resposta (Callback de Feedback):** Ao receber esse comando, o módulo processa e devolve um pacote assíncrono contendo seu status de hardware e a versão exata do firmware atual (ex: `"versao_fw": "1.0.2"`). Esse mecanismo transfere o controle do fluxo para os "superiores" (Hub/Backend) permitindo checar quem está vivo e atualizado sob demanda.
