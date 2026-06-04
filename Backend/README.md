@@ -13,3 +13,4 @@ O Backend atua como a **Interface Principal e Remota** de todo o ecossistema. Su
 *   **Gestão via Web:** Site acessado via senha com Dashboard completo de toda a casa.
 *   **Gerenciador de Mqtt:** Recebe a telemetria, salva os status (Online, Offline, Inativo) e repassa os comandos de ações reativas.
 *   **Controlador Master (Acesso Remoto Completo):** Toda configuração possível do sistema pode ser feita aqui. As calibrações de sensores (ex: MQ-2), os agendadores e estados de retorno pós-queda de energia (Relés Módulo 2), cadastro de novos SSIDs de Wi-Fi e a gestão de banco de usuários do Cofre (Módulo 4) fluem a partir daqui.
+*   **Servidor de OTA (Over-The-Air):** Deve fornecer e hospedar as rotas HTTP estáticas para o download dos binários de atualização dos módulos (ex: `GET /firmware/modulo2/m2.bin`), suportando a rotina de atualização automática a cada 24 horas feita pelos módulos.
