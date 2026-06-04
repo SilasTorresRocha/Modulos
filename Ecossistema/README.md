@@ -115,3 +115,20 @@ Como todos os módulos (1, 2, 3 e 4) compartilham comportamentos base idênticos
 3.  **`scRelogioSincronizado` (Gestão de Tempo Global):** 
     *   *Função:* Fornece a hora exata a qualquer momento através da função `obterHoraUnix()`.
     *   *Detalhe:* Se a placa tem internet, a biblioteca busca e sincroniza a hora via NTP (Network Time Protocol). Se entra em modo offline, ela cessa as buscas na web, aguarda os pacotes ESP-NOW do Hub (Módulo 3, que possui o RTC DS3231 físico) e ajusta o temporizador interno mantendo a precisão para não quebrar os agendamentos.
+
+## 9. Manutenção Autônoma (Reboot Preventivo Diário)
+
+Para garantir a estabilidade absoluta de todos os módulos ao longo de meses ou anos de operação, o ecossistema adota a estratégia de **Reboot Preventivo Diário** gerenciado pela biblioteca `scSaudeHardware`.
+
+### Por que o Reboot Preventivo Diário é a Melhor Solução?
+A rotina de reiniciar a placa de madrugada (às 03:00) resolve três dos maiores fantasmas do IoT de uma única vez:
+1. **Zera o millis()**: O contador interno de tempo do microcontrolador sofre um *overflow* a cada ~49 dias, o que poderia quebrar lógicas matemáticas. O reboot previne isso.
+2. **Cura da Desfragmentação de Memória**: O empacotamento contínuo de pacotes JSON gera buracos na memória RAM (Heap Fragmentation). O reboot devolve o chip ao seu estado de fábrica, liso e rápido, garantindo que ele não sofra engasgos ao longo dos meses.
+3. **Simplificação Extrema do OTA**: Ao invés de manter processos pesados escutando atualizações o dia inteiro, a placa simplesmente verifica o servidor de firmware assim que liga. Ao se auto-reiniciar às 03:00, ela garante que receberá as atualizações na hora mais ociosa do dia, poupando código e processamento na `scConfigOTA`.
+
+### O Paradoxo do Uptime e a Flag Efêmera
+Para que o Reboot Preventivo não destrua a métrica real de confiabilidade (MTBF - Tempo Médio Entre Falhas), o ecossistema implementa dois tempos distintos através de uma **Flag Efêmera** na `scArmazenamentoLocal`:
+- **Uptime da Sessão:** Tempo real desde o último piscar de energia do processador (máximo de 24 horas).
+- **Uptime Estável (`upt_est`):** Minutos antes do suicídio programado das 03:00, a placa salva o tempo total na memória. No boot, ela resgata e **apaga** esse tempo. Se houver uma queda de luz na rua à tarde, a placa ligará e não encontrará a flag salva (pois ela foi deletada de madrugada), zerando a contagem.
+
+Isso significa que o Dashboard no Backend receberá o tempo de sobrevivência real do sistema (ex: "Casa operando perfeitamente há 120 dias"), enquanto silenciosamente os módulos limpam a própria RAM toda madrugada.

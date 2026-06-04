@@ -34,6 +34,7 @@ Sempre que um módulo publica, o `mac_destino` é implicitamente o "HUB/SERVER".
     "t_forno": 1200,         // Tempo de forno ligado (segundos)
     "alm_prep": 600,         // Tempo restante alarme de preparo (segundos)
     "alm_crit": 1800,        // Tempo restante alarme crítico (segundos)
+    "upt_est": 86400,        // Uptime estavel acumulado da placa (segundos) Todos os modulos devem informar isso 
     "status": "online",
     "rssi": -65,             // Qualidade do sinal de rede atual
     "err": []                // Array de erros críticos (ex: ["falha_mq2"])
@@ -54,6 +55,7 @@ Sempre que um módulo publica, o `mac_destino` é implicitamente o "HUB/SERVER".
     "r2_t": 0,
     "r2_kw": 0.0,
     "tot_kw": 1.5,           // Consumo Total acumulado
+    "upt_est": 86400,        // Uptime estavel acumulado da placa (segundos)
     "status": "online",
     "rssi": -70,
     "err": []
@@ -68,6 +70,7 @@ Sempre que um módulo publica, o `mac_destino` é implicitamente o "HUB/SERVER".
   "tipo": "M3",
   "dados": {
     "temp_rtc": 24.5,        // Temperatura lida no sensor físico DS3231
+    "upt_est": 86400,        // Uptime estavel acumulado da placa (segundos)
     "status": "online",
     "rssi": -50,
     "err": []
@@ -83,6 +86,7 @@ Sempre que um módulo publica, o `mac_destino` é implicitamente o "HUB/SERVER".
   "dados": {
     "t_fechada": true,       // Status do sensor da trava solenoide
     "ult_id": 4,             // Último ID que acessou
+    "upt_est": 86400,        // Uptime estavel acumulado da placa (segundos)
     "status": "online",
     "rssi": -60,
     "err": ["falha_sensor_solenoide"] // Exemplo de falha de hardware
