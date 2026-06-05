@@ -3,25 +3,32 @@
 
 #include <Arduino.h>
 
+class scArmazenamentoLocal;
+class scLogger; 
+class scMQTTLib;
+
 class scConfigOTA {
 public:
     scConfigOTA();
     
-    // Inicia o file system e lê as configurações salvas
-    void iniciar();
+    // Inicia dependências, callbacks do OTA Local e define o nome da placa
+    void inicializar(scArmazenamentoLocal* armazenamento, scLogger* logger, scMQTTLib* mqtt, String nomeModulo);
     
-    // Inicia o servidor OTA em background
-    void iniciarServidorOTA();
+    // Deve ser chamada iterativamente no loop() para receber sketchs da IDE local
+    void tratarLocalOTA();
     
-    // Deve ser chamada no loop para escutar novos uploads .bin
-    void tratarOTA();
-
-    // Salva/Lê credenciais genéricas
-    bool salvarCredenciais(const String& chave, const String& valor);
-    String lerCredencial(const String& chave);
+    // Executada apenas uma vez no setup() (ou após o Wi-Fi conectar).
+    // Evita Boot Loop: Só baixa se a URL for nova.
+    void verificarAtualizacaoBoot();
+    
+    // Chamada pelo scDespachanteComandos quando o Backend MQTT empurra um novo binário
+    void agendarNovaURL(String novaUrl);
 
 private:
-    bool fileSystemPronto;
+    scArmazenamentoLocal* _armazenamento;
+    scLogger* _logger;
+    scMQTTLib* _mqtt;
+    String _nomeModulo;
 };
 
 #endif // SC_CONFIG_OTA_H
