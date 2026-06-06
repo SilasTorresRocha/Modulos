@@ -5,7 +5,7 @@
 > **Nota de Dependência:** Este módulo faz parte do Ecossistema IoT. Leia o documento `Ecossistema/README.md` (ou `Backend/README.md`) para entender as lógicas de NTP, Comunicação (scMQTTLib), Alertas Padronizados (Buzzer) e Fallback de Rede (Wi-Fi e ESP-NOW) que se aplicam aqui.
 
 ## Abordagem de Software
-**Bare Metal (Super Loop Otimizado)**
+**Bare Metal (Loop Otimizado)**
 *   **Por quê:** Este módulo é focado em segurança primária. Ele tem sensores diretos (Analógico para MQ-2 e Termistor) e atuadores diretos. O ESP8266 é mais do que capaz de lidar com a tela OLED I2C de forma paralela. Não use FreeRTOS aqui; o overhead no ESP8266 pode gerar latências.
 *   **Lógica:** O loop deve ser mantido enxuto, usando base em temporizadores não-bloqueantes (`millis()`), exatamente como na estrutura da scMQTTLib. Se o gás for detectado, os acionamentos e alertas ocorrem na mesma fração de segundo, sem interrupção de um agendador de tarefas complexo.
 
