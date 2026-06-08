@@ -27,8 +27,7 @@ void scAvisosSonoros::inicializar() {
 }
 
 void scAvisosSonoros::definirPino(bool ligado, unsigned int frequencia) {
-  // Agora que usamos Buzzer Passivo, enviamos a frequencia real via PWM.
-  // Usamos o tone() padrão do Arduino que funciona nativamente no ESP8266 e nos
+  // Tone() padrão do Arduino que funciona nativamente no ESP8266 e nos
   // Cores recentes do ESP32.
   if (ligado) {
     tone(_pino, frequencia);

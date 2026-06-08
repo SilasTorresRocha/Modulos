@@ -43,7 +43,7 @@ void scAgendadorTarefas::setEstadoTarefa(int idTarefa, bool estado) {
 void scAgendadorTarefas::forcarProximaExecucao(int idTarefa) {
     if (idTarefa >= 0 && idTarefa < _qtdTarefas) {
         // O motor subtrai: (Atual - ultimoTempo). 
-        // Ao subtrair o intervalo do Atual, garantimos que o resultado da equacao seja igual ao intervalo, disparando na hora.
+        // Ao subtrair o intervalo do Atual, garante que o resultado da equacao seja igual ao intervalo, disparando na hora.
         _tarefas[idTarefa].ultimoTempo = millis() - _tarefas[idTarefa].intervalo;
     }
 }

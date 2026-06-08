@@ -12,7 +12,7 @@
 ## Hardware Necessário
 *   **ESP-12F**
 *   **Módulo OLED I2C 1.3 in**
-*   **Encoder Rotativo Integrado** (Para navegação fluida)
+*   **Encoder Rotativo Integrado** (Para navegação) + Um botão para confirmação de escolha
 *   **2 Botões Físicos Extras** (Usados como atalhos para Ligar/Desligar relés diretamente, ou, se pressionados juntos, entrar em modo Silencioso).
 *   **Módulo de Relés 3V (2 Canais)**
 *   **Buzzer** (Padrões de alertas definidos no Ecossistema)
@@ -20,7 +20,7 @@
 ## Especificidades da Interface (Sistema de Menus)
 O Módulo 2 possui o menu de interatividade física sendo o Segundo mais rico do sistema (Ficando atras apenas do Modulo Central). Utilizando Padrão de Projetos (separar UI numa biblioteca isolada), ele permite:
 *   **Agendamento Semanal (Persistência Local):** Diferente de simples temporizadores (timers de contagem regressiva), o usuário pode criar regras por dia da semana (ex: *Desligar Canal 1 do relé às 7:30 da manhã toda segunda-feira*).
-    *   *Redundância e Armazenamento:* Para evitar dependência e não falhar caso o Hub ou a Internet caiam, os agendamentos **são armazenados fisicamente na memória da placa** (EEPROM ou LittleFS do ESP8266).
+    *   *Redundância e Armazenamento:* Para evitar dependência e não falhar caso o Hub ou a Internet caiam, os agendamentos **são armazenados fisicamente na memória da placa** (NVS ou LittleFS do ESP8266).
     *   *Limite de Memória:* Por limitações de hardware do chip, o módulo aceitará um limite rígido de agendamentos (ex: Máximo de 10 agendamentos ativos). Se o usuário quiser criar mais, deverá apagar os antigos.
     *   *Descentralização Configural:* Esses agendamentos podem ser criados, cancelados ou visualizados a partir do Encoder Físico (Local), Módulo 3 (Hub) ou Web.
 *   **Estado de Retorno Pós-Queda de Energia:** O usuário pode configurar como cada relé deve se comportar quando a energia elétrica retornar:
