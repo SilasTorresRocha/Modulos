@@ -4,7 +4,22 @@
 A biblioteca `scDespachanteComandos` é o roteador universal (O Despachante). Ela obedece ao Princípio 2 (Comunicação via Contratos Estritos JSON).
 
 ## Papel no Projeto
-- Desserializa a string JSON recebida da `scMQTTLib` utilizando a biblioteca `ArduinoJson`.
-- Verifica se o comando é de Manutenção/Universal (ex: `update_wifi`, `reiniciar_dispositivo`, `solicitar_status`) e os resolve internamente, acionando a `scConfigOTA` ou a placa diretamente.
-- Caso seja um comando específico do Módulo (ex: `set_rele`), repassa a execução para uma função de *Callback* registrada no arquivo principal do módulo (`.ino`).
-- Ajuda a manter a `loop()` da aplicação limpa e abstrata.
+- Desserializa a string JSON recebida da `scMQTTLib` ou via `ESP-NOW` garantindo total segurança de memória através de Alocação na Stack (RAII).
+- Atua como Porteiro: Valida o campo `mac_destino` para garantir que pacotes de *Broadcast* do ESP-NOW não acionem módulos errados.
+- Verifica se o comando é de Manutenção/Universal do Ecossistema (ex: `atualizar_firmware`, `reiniciar_dispositivo`, `sincronizar_relogio`) e os resolve internamente coordenando as outras bibliotecas auxiliares de forma autônoma.
+- Caso seja um comando de Regra de Negócio específico do Módulo (ex: `set_rele`), repassa apenas os argumentos do comando (`JsonVariant args`) para uma função de *Callback* registrada no arquivo principal (`.ino`).
+
+## Arquitetura e Decisões de Design
+
+### Injeção de Dependências Desacopladas
+Para não cometer o pecado de usar `Serial.print()` espalhado pelo código (quebrando a padronização e escalabilidade), o Despachante recebe o ponteiro do `scLogger`. Qualquer falha de leitura do JSON é reportada corretamente ao sistema central de log. Ele também recebe o `scConfigOTA` e `scRelogioSincronizado` para orquestrar Comandos Universais sem que o módulo principal saiba que algo aconteceu.
+
+### Validação MAC (Blindagem contra Broadcast)
+No ESP-NOW, é comum o Hub transmitir comandos genéricos (`mac_destino: "ALL"`) ou específicos. O Despachante processa o campo `mac_destino` rigorosamente pelo Contrato e destrói o pacote silenciosamente caso o MAC destino não seja a palavra explícita `"ALL"` nem corresponda ao MAC físico exato da placa receptora.
+
+### Proteção de Memória em Alto Nível (RAII)
+O uso da `ArduinoJson` é feito com a instância `JsonDocument doc` estrita ao escopo da função `processarPayload`. Isso significa que a RAM emprestada da Stack para desserializar o documento é limpa no momento exato em que a função termina, garantindo 0% de vazamento de memória (Memory Leak) ou Fragmentação ao longo de meses de uso.
+
+### O Callback de Negócios
+Quando o Despachante identifica que o comando é `set_rele` (que pertence à placa local e não à infraestrutura universal), ele não joga a String crua para o Módulo lidar. Ele chama o `CallbackComandoLocal(cmd, args)`, entregando a chave primária já validada e um objeto inteligente (`JsonVariant`) contendo os argumentos.
+Isso mantém o `loop()` do arquivo `.ino` imaculado, abstrato e focado unicamente nos atuadores elétricos, sem saber como a internet funciona.

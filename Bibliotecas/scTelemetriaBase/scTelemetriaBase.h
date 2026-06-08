@@ -7,13 +7,15 @@
 class scMQTTLib;
 class scLogger;
 class scSaudeHardware;
+class scGestorRede;
+class scTransceptorESPNow;
 
 class scTelemetriaBase {
 public:
     scTelemetriaBase();
     
     // Injeta as dependencias e prepara o buffer anti-fragmentacao
-    void inicializar(scMQTTLib* mqtt, scLogger* logger, scSaudeHardware* saude, String macOrigem, String tipoModulo);
+    void inicializar(scMQTTLib* mqtt, scLogger* logger, scSaudeHardware* saude, scGestorRede* gestor, scTransceptorESPNow* transceptor, const uint8_t* macHub, String macOrigem, String tipoModulo);
     
     // Inicia um novo pacote limpando o anterior e preenchendo as variaveis base
     void iniciarPacote();
@@ -36,6 +38,9 @@ private:
     scMQTTLib* _mqtt;
     scLogger* _logger;
     scSaudeHardware* _saude;
+    scGestorRede* _gestor;
+    scTransceptorESPNow* _transceptor;
+    uint8_t _macHub[6];
     String _macOrigem;
     String _tipoModulo;
     

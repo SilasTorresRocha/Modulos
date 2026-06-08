@@ -2,6 +2,8 @@
 #include "scMQTTLib.h"
 #include "scLogger.h"
 #include "scSaudeHardware.h"
+#include "../scGestorRede/scGestorRede.h"
+#include "../scTransceptorESPNow/scTransceptorESPNow.h"
 
 #if defined(ESP8266)
   #include <ESP8266WiFi.h>
@@ -13,12 +15,20 @@ scTelemetriaBase::scTelemetriaBase() {
     _mqtt = nullptr;
     _logger = nullptr;
     _saude = nullptr;
+    _gestor = nullptr;
+    _transceptor = nullptr;
+    memset(_macHub, 0xFF, 6);
 }
 
-void scTelemetriaBase::inicializar(scMQTTLib* mqtt, scLogger* logger, scSaudeHardware* saude, String macOrigem, String tipoModulo) {
+void scTelemetriaBase::inicializar(scMQTTLib* mqtt, scLogger* logger, scSaudeHardware* saude, scGestorRede* gestor, scTransceptorESPNow* transceptor, const uint8_t* macHub, String macOrigem, String tipoModulo) {
     _mqtt = mqtt;
     _logger = logger;
     _saude = saude;
+    _gestor = gestor;
+    _transceptor = transceptor;
+    if (macHub) {
+        memcpy(_macHub, macHub, 6);
+    }
     _macOrigem = macOrigem;
     _tipoModulo = tipoModulo;
     
@@ -107,7 +117,13 @@ void scTelemetriaBase::despachar() {
     }
     
     // Envia o JSON higienizado e dentro do limite
-    if (_mqtt != nullptr) {
-        _mqtt->enviarJSON(_jsonAtual);
+    if (_gestor && _gestor->estaEmFallback()) {
+        if (_transceptor) {
+            _transceptor->enviarPacote(_macHub, _jsonAtual);
+        }
+    } else {
+        if (_mqtt != nullptr) {
+            _mqtt->enviarJSON(_jsonAtual);
+        }
     }
 }

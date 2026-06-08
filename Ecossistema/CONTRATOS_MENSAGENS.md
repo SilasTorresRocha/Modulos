@@ -137,6 +137,10 @@ if (doc["args"].containsKey("alm_crit")) {
 }
 ```
 
+### 4.0 Segurança Nível Aplicação (Anti-Replay Attack)
+Para evitar que pacotes de rádio criptografados sejam gravados e retransmitidos por um invasor (Replay Attack), comandos críticos (como abrir travas) devem possuir a chave `"ts"` (Timestamp Unix). 
+O `scDespachanteComandos` cruza o valor de `"ts"` com o tempo atual da placa (`scRelogioSincronizado`). Se o pacote estiver "vencido" (ex: mais de 5 segundos de atraso), ele é descartado, mesmo que a criptografia seja válida.
+
 ### 4.1 Comandos Universais (Obrigatórios em todos os módulos)
 
 **Atualizar Wi-Fi (Broadcast):**
@@ -176,6 +180,19 @@ Informa a um módulo qual é o MAC Address do seu parceiro direto (ex: Avisa o M
   "args": {
     "tipo_alvo": "M2",
     "mac_alvo": "AA:BB:CC:DD:EE:22"
+  }
+}
+```
+
+**Provisionamento de Segurança (Senha da Casa para ESP-NOW):**
+Enviado após o setup inicial ou troca de Hub. O módulo salva na memória (`scArmazenamentoLocal`) e injeta no `scTransceptorESPNow` para garantir o rádio fallback com criptografia simétrica PMK/LMK (máximo 16 bytes).
+```json
+{
+  "mac_origem": "HUB",
+  "mac_destino": "ALL",
+  "cmd": "update_espnow_key",
+  "args": {
+    "chave_simetrica": "SenhaForte123456" 
   }
 }
 ```
@@ -277,7 +294,17 @@ Ao receber isso, o ESP salva em memória não-volátil ou algo com LittleFS e ap
 {
   "mac_origem": "HUB",
   "mac_destino": "AA:BB:CC:DD:EE:44",
+  "cmd": "abrir_cofre",
+  "ts": 1781258400,
+  "args": {}
+}
+```
+```json
+{
+  "mac_origem": "HUB",
+  "mac_destino": "AA:BB:CC:DD:EE:44",
   "cmd": "cadastrar_digital",
+  "ts": 1781258400,
   "args": {"novo_id": 5}
 }
 ```

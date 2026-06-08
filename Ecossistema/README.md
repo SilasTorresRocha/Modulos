@@ -74,10 +74,13 @@ A conexão de rede é o pilar do sistema e possui um fallback rigoroso. A topolo
 > *   **Cenário 2 (Sem Internet):** Se o Wi-Fi está conectado, mas a placa falha em enviar dados MQTT após X tentativas, significa que o roteador não tem saída para a web. A placa também ativa o ESP-NOW para tentar chegar ao Módulo 3 (que pode ter alguma rota alternativa ou simplesmente para manter a casa funcionando offline).
 
 > [!WARNING]
-> **Segurança no Fallback (Criptografia ESP-NOW):**
-> O protocolo ESP-NOW possui suporte à criptografia usando PMK (Primary Master Key) e LMK (Local Master Key) baseada em MAC Address, o que evita a interceptação de dados sensíveis (como comandos de destravamento de cofre).
-> *   **Limitação de Hardware:** Apenas chips da família ESP32 (Módulo 3 - ESP32-S2 e Módulo 4 - ESP32-C3) suportam a criptografia no hardware. Eles formarão peers seguros.
-> *   **O ESP8266 (Módulos 1 e 2) não suporta LMK/PMK**, portanto sua comunicação via rádio em fallback será aberta. O Módulo 3 (Hub) é perfeitamente capaz de manter redes mistas (peers criptografados e não criptografados simultaneamente), respeitando o limite interno do chip (geralmente até 10 peers criptografados no modo STA).
+> **Segurança no Fallback e a "Senha da Casa" (Criptografia ESP-NOW):**
+> Para não perder a casa se o Hub quebrar e não comprometer a segurança, a arquitetura exige uma "Senha da Casa" (Chave Simétrica):
+> 1. **Backend:** O usuário cria uma "Senha Mestra" no Backend, que a converte em exatos 16 bytes.
+> 2. **Provisionamento Seguro:** Pelo Wi-Fi seguro, o Backend envia a chave. A `scDespachanteComandos` repassa para a `scArmazenamentoLocal` que a grava fisicamente na placa.
+> 3. **Sobrevivência:** Quando o roteador cai, a `scTransceptorESPNow` lê a chave do disco e a injeta como PMK/LMK no rádio.
+> 4. **Prevenção de Roubo:** Se o Hub queimar, um novo Hub assume ao receber a mesma senha. Se o Módulo 4 for roubado fisicamente, o Backend simplesmente manda o Hub (M3) revogar e ignorar o MAC da placa roubada, inutilizando-a.
+> *Nota: O Módulo 4 (ESP32) exigirá essa criptografia de hardware.*
 
 ## 5. Fallback para Falhas Críticas de Hardware
 

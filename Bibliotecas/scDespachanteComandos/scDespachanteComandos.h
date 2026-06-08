@@ -2,22 +2,45 @@
 #define SC_DESPACHANTE_COMANDOS_H
 
 #include <Arduino.h>
+#include <ArduinoJson.h>
 
-class scGestorRede;
+class scRelogioSincronizado;
 class scConfigOTA;
+class scLogger;
+class scArmazenamentoLocal;
+class scTransceptorESPNow;
+
+// Tipo de funcao callback para o Módulo tratar seus proprios comandos (ex: "set_rele")
+// Recebe o nome do comando e o objeto JSON de argumentos
+typedef void (*CallbackComandoLocal)(const char* cmd, JsonVariant args);
 
 class scDespachanteComandos {
 public:
     scDespachanteComandos();
-    // Injecao de Dependencias: O despachante precisa conversar com a rede e o OTA
-    void inicializar(scGestorRede* gestorRede, scConfigOTA* configOTA);
-    void processarMensagem(String payloadJson);
+
+    // Injeta as ferramentas que o despachante precisa para operar a placa
+    void inicializar(String macDestaPlaca, 
+                     scRelogioSincronizado* relogio, 
+                     scConfigOTA* ota, 
+                     scLogger* logger,
+                     scArmazenamentoLocal* armazenamento,
+                     scTransceptorESPNow* transceptor);
+
+    // O arquivo .ino do Modulo registra aqui a sua funcao de regras de negocio
+    void registrarCallbackLocal(CallbackComandoLocal callback);
+
+    // Onde a scMQTTLib e o ESP-NOW entregam a String recebida para ser dissecada
+    void processarPayload(const char* macOrigemTransceptor, const char* payload);
 
 private:
-    scGestorRede* _gestorRede;
-    scConfigOTA* _configOTA;
+    String _macLocal;
+    scRelogioSincronizado* _relogio;
+    scConfigOTA* _ota;
+    scLogger* _logger;
+    scArmazenamentoLocal* _armazenamento;
+    scTransceptorESPNow* _transceptor;
     
-    void resolverComandoUniversal(String comando);
+    CallbackComandoLocal _callbackLocal;
 };
 
 #endif // SC_DESPACHANTE_COMANDOS_H
