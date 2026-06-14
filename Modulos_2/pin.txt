@@ -1,0 +1,15 @@
+Pinout Estratégico Aprovado (ESP-12F): O ESP8266 possui severas restrições no boot (pull-ups mandatórios). A alocação foi desenhada para obedecer a eletrônica e usar o TX/RX para cobrir a falta de pinos.
+
+GPIO 4: SDA (I2C Display) - Livre.
+GPIO 5: SCL (I2C Display) - Livre.
+GPIO 14: Relé 1 - Livre.
+GPIO 15: Relé 2 - Obrigatório LOW no boot. Perfeito para transistores NPN de relé ativo alto.
+GPIO 12: Encoder Pin A - Livre.
+GPIO 13: Encoder Pin B - Livre.
+GPIO 0: Encoder Botão (SW) - Obrigatório HIGH no boot. Precisa ser acionado para o GND (pull-up interno).
+GPIO 2: Botão Extra 1 - Obrigatório HIGH no boot. Precisa ser acionado para o GND (pull-up interno).
+GPIO 3 (RX0): Botão Extra 2 - Usável mantendo o pino RX exclusivo para leitura (sem enviar dados do PC para o ESP).
+GPIO 16: Buzzer - Usável como pino de saída normal (Sem pull-up interno).
+GPIO 1 (TX0): Livre para Serial.print() de Debug!
+
+Total: 10 GPIOs (Hardware suprido sem expansores I2C).

@@ -1,4 +1,4 @@
-# Contratos de Mensageria (A Bíblia de Comunicação)
+# Contratos de Mensageria (Bíblia de Comunicação)
 
 Este documento dita a estrutura de dados que trafega entre os Módulos, o Módulo Central (Hub) e o Backend Web.
 Como a biblioteca `scMQTTLib` funciona como um canal estrito de TX/RX, o roteamento de origem e destino é feito **dentro do JSON**.

@@ -137,13 +137,27 @@ void scDespachanteComandos::processarPayload(const char* macOrigemTransceptor, c
     
     if (comandoStr == "set_peer_mac") {
         if (_logger) _logger->info("DESPACHANTE", "Recebido provisionamento P2P set_peer_mac.");
-        // Será roteado para a scGestorRede no futuro
+        
+        if (_armazenamento && args["tipo_alvo"] && args["mac_alvo"]) {
+            String chave = "peer_" + args["tipo_alvo"].as<String>();
+            String mac = args["mac_alvo"].as<String>();
+            _armazenamento->salvarChaveValor(chave, mac);
+            _armazenamento->commitarAlteracoes();
+            if (_logger) _logger->info("DESPACHANTE", "P2P MAC salvo na flash: " + chave);
+        }
+        
+        // Repassa o comando para o arquivo principal (.ino) carregar na RAM imediatamente
+        if (_callbackLocal != nullptr) {
+            _callbackLocal(cmd, args);
+        }
         return;
     }
     
     if (comandoStr == "solicitar_status") {
         if (_logger) _logger->info("DESPACHANTE", "Solicitacao de Heartbeat instantaneo recebida.");
-        // Normalmente o Módulo intercepta na Telemetria, mas paramos aqui para nao poluir o .ino
+        if (_callbackLocal != nullptr) {
+            _callbackLocal(cmd, args);
+        }
         return;
     }
 

@@ -39,4 +39,4 @@ O Módulo 2 possui o menu de interatividade física sendo o Segundo mais rico do
     1.  *Independente:* O Módulo 1 acionar não afeta o relé.
     2.  *Bloquear (Perigo):* O relé é impedido de ligar (ou é desligado imediatamente) pois o que está plugado gera faísca elétrica.
     3.  *Obrigatório (Exaustor):* O relé é forçado a ligar para retirar o gás do ar, e se desliga quando o vazamento cessar.
-*   **UI Inteligente:** Essas opções reativas só aparecem na telinha do Módulo 2 se o Módulo Central acusar que "O Módulo 1 está Online na casa".
+*   **UI Inteligente:** Essas opções reativas só aparecem na telinha do Módulo 2 se o Módulo Central(HUB/Backend) acusar que "O Módulo 1 está Online na casa".

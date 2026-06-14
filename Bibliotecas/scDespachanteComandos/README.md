@@ -23,3 +23,8 @@ O uso da `ArduinoJson` é feito com a instância `JsonDocument doc` estrita ao e
 ### O Callback de Negócios
 Quando o Despachante identifica que o comando é `set_rele` (que pertence à placa local e não à infraestrutura universal), ele não joga a String crua para o Módulo lidar. Ele chama o `CallbackComandoLocal(cmd, args)`, entregando a chave primária já validada e um objeto inteligente (`JsonVariant`) contendo os argumentos.
 Isso mantém o `loop()` do arquivo `.ino` imaculado, abstrato e focado unicamente nos atuadores elétricos, sem saber como a internet funciona.
+
+### Repasse Híbrido de Comandos Universais (Exceções)
+Embora a maioria dos comandos de infraestrutura seja resolvida de forma 100% autônoma pelo Despachante (como `atualizar_firmware` ou `reiniciar_dispositivo`), existem comandos universais que exigem o conhecimento da aplicação principal (o arquivo `.ino`):
+- **`solicitar_status` (Heartbeat Instantâneo):** O Despachante não possui acesso aos sensores físicos, logo, não sabe montar a telemetria. Por isso, ele **obrigatoriamente** repassa o comando via `_callbackLocal` para que o módulo force o disparo dos dados através da implementação da telemetria (ex: `scTelemetriaBase`).
+- **`set_peer_mac` (Provisionamento P2P):** O Despachante cumpre seu papel de infraestrutura salvando a chave na memória *flash* via `scArmazenamentoLocal`, mas **também** repassa o comando via `_callbackLocal` para que o módulo carregue o MAC do parceiro na memória RAM imediatamente. Isso assegura que a comunicação Mesh (ex: um alerta de vazamento de gás) funcione no mesmo instante, sem necessidade de reinicialização.
