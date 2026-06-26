@@ -211,6 +211,20 @@ Ao receber isso, o ESP salva em memória não-volátil ou algo com LittleFS e ap
 }
 ```
 
+**Notificação de Status de Pares (Morte de Módulos):**
+Disparado pelo Hub/Backend em Broadcast para avisar aos módulos locais (que não leem telemetria alheia) que um módulo crítico ficou Inativo. O Módulo 2 usa isso para esconder o menu de Ações de Gás se o Módulo 1 morrer.
+```json
+{
+  "mac_origem": "HUB",
+  "mac_destino": "ALL",
+  "cmd": "status_peer",
+  "args": {
+    "tipo": "M1",
+    "status": "inativo" // "online", "offline" (sem net, mas vivo), "inativo" (morto)
+  }
+}
+```
+
 **Manutenção (Ping e Reboot):**
 ```json
 // Comando para forçar um módulo a reiniciar fisicamente (Soft Reset)
@@ -276,7 +290,33 @@ Ao receber isso, o ESP salva em memória não-volátil ou algo com LittleFS e ap
   "args": {
     "id": 1,
     "pot_w": 1500,           // Potência da carga conectada (Watts) para cálculo de consumo
-    "fb_gas": 2              // Regra de Gás: 1 (Ignorar), 2 (Bloquear/Desligar), 3 (Forçar Exaustor)
+    "fb_gas": 2,             // Regra de Gás: 1 (Ignorar), 2 (Bloquear/Desligar), 3 (Forçar Exaustor)
+    "ret_pwr": 3             // Estado Pós-Queda: 1 (Sempre OFF), 2 (Sempre ON), 3 (Último Estado)
+  }
+}
+```
+```json
+{
+  "mac_origem": "HUB",
+  "mac_destino": "AA:BB:CC:DD:EE:22",
+  "cmd": "add_agendamento",
+  "args": {
+    "id_agd": 1,         // De 1 a 10 (Sobrescreve se já existir)
+    "rele": 1,           // Canal do relé
+    "dia": "SEG",        // Dia da semana (DOM, SEG, TER, QUA, QUI, SEX, SAB ou TODOS)
+    "hora": 7,
+    "min": 30,
+    "acao": 1            // 1 = Ligar, 0 = Desligar
+  }
+}
+```
+```json
+{
+  "mac_origem": "HUB",
+  "mac_destino": "AA:BB:CC:DD:EE:22",
+  "cmd": "del_agd",
+  "args": {
+    "id_agd": 1
   }
 }
 ```

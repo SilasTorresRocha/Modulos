@@ -33,6 +33,9 @@ Dependendo do que foi gravado na configuração, ela irá:
 - **Bloquear/Desligar:** Desliga o relé instantaneamente para evitar geração de arco elétrico/faísca e bloqueia comandos manuais/agendamentos até a limpeza do ar.
 - **Obrigatório (Exaustor):** Força o relé a ligar, sugando o gás da sala até receber o aviso de segurança.
 
+**Exposição da Contingência de Gás:** 
+A `scGestorReles` não deve desenhar telas (pois é desacoplada), mas precisa expor se está travada para quem perguntar! Existe a função pública `EmergenciaGasAtiva(id)` no `.h` e no `.cpp`. Agora, quando a Telemetria ou o Controlador de Menus verem que o `setEstadoRele()` retornou `false`, basta chamar `EmergenciaGasAtiva(id)` para saber se a falha no comando se deu por conta de um vazamento de Gás. Se for, a UI assume o controle e desenha um popup vermelho de aviso de vazamento na tela!
+
 ## Dependências
 - `scLogger`
 - `scArmazenamentoLocal`

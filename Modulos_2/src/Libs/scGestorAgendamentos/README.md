@@ -22,6 +22,10 @@ O `scControladorMenu` pode chamar métodos como:
 - `excluirAgendamento(id)`
 
 Todo *Update* na lista engatilha imediatamente um *Commit* na flash, garantindo que se a energia cair no milissegundo seguinte, o timer foi salvo com sucesso.
+Para preservar a pequena quantidade de RAM do ESP8266, a biblioteca grava e lê esses 10 blocos na flash não como um JSON inchado, mas como uma **String Comprimida**. O formato salvo no `scArmazenamentoLocal` (sob a chave `agd_mem`) obedece a estrutura: `id:rele:dia_int:hora:min:acao:ativo|id:rele...`.
+
+### 4. Dias Curingas (Otimização de Slots)
+A memória restringe os usuários a 10 rotinas. Para evitar que alguém gaste 7 posições apenas para programar "Ligue a luz de fora todos os dias às 18h", a biblioteca adota o princípio de Curinga. O Dia da Semana aceita a palavra especial `"TODOS"` (internamente representada pelo inteiro `8`), que ignora a matemática temporal e dispara o evento todos os dias sem sacrificar espaço.
 
 ## Dependências
 - `scRelogioSincronizado`

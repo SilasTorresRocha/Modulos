@@ -1,15 +1,17 @@
-Pinout Estratégico Aprovado (ESP-12F): O ESP8266 possui severas restrições no boot (pull-ups mandatórios). A alocação foi desenhada para obedecer a eletrônica e usar o TX/RX para cobrir a falta de pinos.
+Pinout (ESP-12F): O ESP8266 possui severas restrições no boot (pull-ups mandatórios). A alocação foi desenhada para obedecer a eletrônica e usar o TX/RX para cobrir a falta de pinos.
 
-GPIO 4: SDA (I2C Display) - Livre.
-GPIO 5: SCL (I2C Display) - Livre.
-GPIO 14: Relé 1 - Livre.
-GPIO 15: Relé 2 - Obrigatório LOW no boot. Perfeito para transistores NPN de relé ativo alto.
-GPIO 12: Encoder Pin A - Livre.
-GPIO 13: Encoder Pin B - Livre.
-GPIO 0: Encoder Botão (SW) - Obrigatório HIGH no boot. Precisa ser acionado para o GND (pull-up interno).
-GPIO 2: Botão Extra 1 - Obrigatório HIGH no boot. Precisa ser acionado para o GND (pull-up interno).
-GPIO 3 (RX0): Botão Extra 2 - Usável mantendo o pino RX exclusivo para leitura (sem enviar dados do PC para o ESP).
-GPIO 16: Buzzer - Usável como pino de saída normal (Sem pull-up interno).
-GPIO 1 (TX0): Livre para Serial.print() de Debug!
+| Função | Pino | Motivo / Restrição |
+| --- | --- | --- |
+| **Relé 1** | GPIO 4 | Livre, estável. Seguro para relé ativo baixo. |
+| **Relé 2** | GPIO 16 | Não interfere no boot. Seguro para relé ativo baixo. |
+| **SDA (I²C)** | GPIO 12 | Livre. Qualquer pino serve (I2C por software no ESP8266). |
+| **SCL (I²C)** | GPIO 13 | Livre. Qualquer pino serve (I2C por software no ESP8266). |
+| **Encoder A** | GPIO 14 | Aceita interrupção, estável. |
+| **Encoder B** | GPIO 3 (RX0) | Aceita interrupção, usar exclusivo como entrada (sem envio pelo PC). |
+| **Encoder Botão** | GPIO 0 | Obrigatório HIGH no boot → botão com pull-up para GND funciona perfeito. |
+| **Botão Extra 1** | GPIO 2 | Obrigatório HIGH no boot → botão com pull-up para GND seguro. |
+| **Botão Extra 2** | GPIO 5 | Livre, pode ser usado como botão normal. |
+| **Buzzer** | GPIO 15 | Seguro. Precisa estar LOW no boot, portanto um buzzer ativo ALTO/PWM não apitará no boot. |
+| **Serial Debug** | GPIO 1 (TX0) | Continua livre para `Serial.print()`. |
 
 Total: 10 GPIOs (Hardware suprido sem expansores I2C).

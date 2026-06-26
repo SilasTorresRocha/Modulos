@@ -39,3 +39,9 @@ A arquitetura presume que as redes locais não são seguras por natureza.
 Durante a fase de desenvolvimento atual, **não há compromisso com retrocompatibilidade**. As bibliotecas core (`sc*`) são projetadas para alcançar o mais alto padrão de qualidade (nível industrial/aeroespacial). 
 *   Se uma assinatura de método precisar ser alterada para melhorar performance (ex: uso de ponteiros constantes no lugar de cópias de String) ou para garantir segurança, ela será alterada diretamente. 
 *   Não são permitidas "gambiarras" ou sobrecargas obsoletas apenas para não quebrar códigos antigos. Se uma API mudar, os módulos dependentes deverão ser reescritos para se adequarem ao novo e melhor padrão.
+
+## 9. Transparência de Erros (Não Falhar Silenciosamente)
+Em sistemas críticos, o silêncio é o pior inimigo. Nenhuma função ou método do ecossistema deve ignorar uma falha de injeção de dependência ou erro de estado sem reportar adequadamente.
+*   **Fail-Fast e Log Obrigatório:** Se um ponteiro essencial (como de memória, relógio ou logger) chegar nulo, ou se uma validação de segurança travar o sistema, a biblioteca deve registrar o erro (via `_logger->error`) imediatamente.
+*   **Retornos Claros:** Funções atuadoras (como ligar um relé) devem retornar um valor (ex: `boolean`) indicando se a ação foi aceita ou bloqueada (por contingência ou erro mecânico), permitindo que a camada de UI ou o motor de telemetria lidem com o alerta visivelmente.
+
