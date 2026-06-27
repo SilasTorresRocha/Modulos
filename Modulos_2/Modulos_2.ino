@@ -190,7 +190,8 @@ void setup() {
 
     // 3. Sistema de Vida e Hardware Base
     armazenamento.inicializar();
-    
+    //armazenamento.inicializar(&logger);
+
     saudeM2.inicializarLocal(&logger, 0x3C);
     saudeM2.inicializar(5, &armazenamento); // Watchdog brutal de 5s para loops travados
     

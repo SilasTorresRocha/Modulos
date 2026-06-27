@@ -5,10 +5,10 @@ Este documento descreve a arquitetura base, as regras globais e a topologia de c
 ## 1. Topologia e Visão Geral
 
 O sistema é desenhado para ter **alta disponibilidade, redundância e independência**.
-Existem dois "cérebros" no sistema, que executam essencialmente as mesmas funções de gerência, porém em escopos diferentes:
+Existem dois "cérebros" no sistema que atuam de forma simbiótica e representam a **mesma autoridade** (espelhos) para os módulos periféricos:
 
-1.  **Backend Web (Servidor Online/Docker):** É o ponto de controle central pela internet. Ele provê o painel web (com login, dashboard completo, etc.) e distribui comandos para as placas via MQTT.
-2.  **Módulo 3 (Central/Dashboard Touch Local):** É o controlador físico presente no local. Ele tem bateria própria (PSU) para lidar com quedas de energia.
+1.  **Backend Web (Servidor Online/Docker):** É o ponto de controle central pela internet (MQTT). Ele provê o painel web, histórico e orquestra a casa quando a conexão externa está saudável.
+2.  **Módulo 3 (O Hub / Central Local):** É literalmente o "Backend Físico". Ele faz rigorosamente **tudo** que o servidor web faz (configurações, roteamento de dados inter-módulos, alertas). Se a casa perder o Wi-Fi (ou se o roteador ficar sem internet da rua, estado atestado pela `scMQTTLib`), a rede ESP-NOW sobe imediatamente e o Módulo 3 assume 100% da operação como um porto seguro autônomo, impedindo que a casa pare.
 
 > [!IMPORTANT]
 > **Tolerância a Falhas:**

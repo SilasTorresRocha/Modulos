@@ -45,3 +45,7 @@ Em sistemas críticos, o silêncio é o pior inimigo. Nenhuma função ou métod
 *   **Fail-Fast e Log Obrigatório:** Se um ponteiro essencial (como de memória, relógio ou logger) chegar nulo, ou se uma validação de segurança travar o sistema, a biblioteca deve registrar o erro (via `_logger->error`) imediatamente.
 *   **Retornos Claros:** Funções atuadoras (como ligar um relé) devem retornar um valor (ex: `boolean`) indicando se a ação foi aceita ou bloqueada (por contingência ou erro mecânico), permitindo que a camada de UI ou o motor de telemetria lidem com o alerta visivelmente.
 
+## 10. Proibição de Serial.print (O Logger é Soberano)
+O uso de `Serial.print` ou `Serial.println` diretamente no código de produção é considerado uma falha arquitetural grave . 
+*   **Por quê?** Os módulos operam de forma autônoma (via bateria/tomada) e recebem atualizações via OTA. O `Serial.print` é um comando rudimentar e "cego" que envia dados ao vento caso nenhum cabo USB esteja escutando, desperdiçando processamento.
+*   **A Solução:** O uso do `scLogger` injetado é obrigatório, pois ele é inteligente o suficiente para rotear os avisos (para um dashboard remoto, syslog, mqtt ou arquivo local). Se houver uma falha estrutural e o próprio `scLogger` estiver ausente (ponteiro nulo), a placa deve entrar em *Hardware Panic* (ex: piscar o LED onboard em loop infinito e travar) em vez de imprimir na porta serial.

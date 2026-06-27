@@ -37,6 +37,12 @@ void scAvisosSonoros::definirPino(bool ligado, unsigned int frequencia) {
 }
 
 void scAvisosSonoros::tocar(PadraoSom padrao) {
+  // 1. NOVA TRAVA: Ignora a chamada se o som solicitado JÁ estiver tocando.
+  // Isso blinda a biblioteca contra loops super-rápidos chamando o mesmo alarme sem parar.
+  if (_padraoAtual == padrao) {
+      return; 
+  }
+
   // BLINDAGEM DO MODO SILENCIOSO (Conforto do Usuario):
   // Ignora solenemente os bips cotidianos de menu/timers se o usuario mutou.
   // POREM, um vazamento de gas/hardware em chamas e mais importante que o

@@ -1,0 +1,10 @@
+# Pinout seguro para ESP-12F
+
+| Função       | GPIO | Comentário |
+|--------------|------|------------|
+| Sensor Gás   | A0   | Único ADC, sem restrição |
+| DS18B20      | 13   | Estável, suporta 1-Wire |
+| Relé SSR     | 12   | Seguro, não interfere no boot |
+| Buzzer       | 14   | Livre, ideal para PWM |
+| SDA (I²C)    | 4    | Precisa pull-up, ok |
+| SCL (I²C)    | 5    | Estável |

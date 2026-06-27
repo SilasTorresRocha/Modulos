@@ -43,3 +43,9 @@ Para garantir que as placas (incluindo o Módulo 1) estejam rodando a versão ma
 Isso evita o problema clássico de IoT onde a placa envia sua versão apenas no *boot* e o pacote se perde se o broker estiver reiniciando junto.
 *   **Comando `solicitar_status`:** Quando o Dashboard Web é aberto, ou em momentos de auditoria, o Backend atira o comando `solicitar_status` para a rede.
 *   **Resposta (Callback de Feedback):** Ao receber esse comando, o módulo processa e devolve um pacote assíncrono contendo seu status de hardware e a versão exata do firmware atual (ex: `"versao_fw": "1.0.2"`). Esse mecanismo transfere o controle do fluxo para os "superiores" (Hub/Backend) permitindo checar quem está vivo e atualizado sob demanda.
+
+## Credenciais Padrão (Ambiente de Testes)
+Como os Módulos podem ser fabricados/montados antes do Módulo 3 (Hub) estar pronto na infraestrutura local, o firmware compila com uma rede Wi-Fi padrão de laboratório para evitar que a placa fique presa no modo Fallback eternamente durante os testes de bancada.
+- **SSID Padrão:** `REDE`
+- **Senha Padrão:** `SENHA123`
+*(Em produção, o Hub enviaria a verdadeira senha da casa via ESP-NOW caso a placa não conseguisse se conectar, ou via SmartConfig).*
