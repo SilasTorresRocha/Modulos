@@ -7,6 +7,7 @@
 #include <ESP8266WiFi.h>
 #elif defined(ESP32)
 #include <WiFi.h>
+#include <esp_wifi.h>
 #endif
 
 // FORWARD DECLARATION GLOBAL

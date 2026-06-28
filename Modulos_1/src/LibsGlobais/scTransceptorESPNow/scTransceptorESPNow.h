@@ -56,7 +56,7 @@ private:
     static void callbackRecebimento(uint8_t * mac, uint8_t *dadosRecebidos, uint8_t tamanho);
     static void callbackEnvio(uint8_t *macDestino, uint8_t statusEnvio);
 #elif defined(ESP32)
-    static void callbackRecebimento(const esp_now_recv_info_t *recv_info, const uint8_t *dadosRecebidos, int tamanho);
+    static void callbackRecebimento(const uint8_t *mac_addr, const uint8_t *dadosRecebidos, int tamanho);
     static void callbackEnvio(const uint8_t *macDestino, esp_now_send_status_t statusEnvio);
 #endif
 };

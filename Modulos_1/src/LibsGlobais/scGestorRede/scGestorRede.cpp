@@ -171,6 +171,6 @@ void scGestorRede::escanearCanaisESPNow() {
 #if defined(ESP8266)
   wifi_set_channel(_canalEspNow);
 #elif defined(ESP32)
-  esp_wifi_set_channel(WIFI_IF_STA, _canalEspNow);
+  esp_wifi_set_channel(_canalEspNow, WIFI_SECOND_CHAN_NONE);
 #endif
 }

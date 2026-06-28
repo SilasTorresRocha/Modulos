@@ -137,14 +137,14 @@ void scTransceptorESPNow::callbackRecebimento(uint8_t * mac, uint8_t *dadosReceb
 void scTransceptorESPNow::callbackEnvio(uint8_t *macDestino, uint8_t statusEnvio) {}
 
 #elif defined(ESP32)
-void scTransceptorESPNow::callbackRecebimento(const esp_now_recv_info_t *recv_info, const uint8_t *dadosRecebidos, int tamanho) {
+void scTransceptorESPNow::callbackRecebimento(const uint8_t *mac_addr, const uint8_t *dadosRecebidos, int tamanho) {
     if (_instanciaGlobal && _instanciaGlobal->_acaoRecebimento) {
         char payload[251];
         memcpy(payload, dadosRecebidos, tamanho);
         payload[tamanho] = '\0';
         
         char macOrigem[18];
-        _instanciaGlobal->macParaBuffer(recv_info->src_addr, macOrigem);
+        _instanciaGlobal->macParaBuffer(mac_addr, macOrigem);
         
         _instanciaGlobal->_acaoRecebimento(macOrigem, payload);
     }

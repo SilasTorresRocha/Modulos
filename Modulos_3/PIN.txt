@@ -1,0 +1,15 @@
+# Pinout para ESP32-S2 (Hub)
+
+| Função          | GPIO | Comentário |
+|-----------------|------|------------|
+| I2C SDA (DS3231)| 8    | Pinos padrão I2C S2 |
+| I2C SCL (DS3231)| 9    | Pinos padrão I2C S2 |
+| SPI SCK         | 36   | Barramento SPI Compartilhado |
+| SPI MOSI        | 35   | Barramento SPI Compartilhado |
+| SPI MISO        | 37   | Barramento SPI Compartilhado |
+| TFT CS          | 34   | Chip Select da Tela |
+| TFT DC          | 33   | Data/Command da Tela |
+| TFT RST         | 38   | Reset da Tela |
+| Touch CS        | 12   | Chip Select do Touch |
+| SD Card CS      | 10   | Chip Select do Módulo SD |
+| Buzzer          | 11   | Buzzer |
