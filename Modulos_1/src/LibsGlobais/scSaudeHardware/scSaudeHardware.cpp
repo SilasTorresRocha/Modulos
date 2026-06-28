@@ -38,7 +38,16 @@ void scSaudeHardware::inicializar(uint32_t timeoutWatchdogSegundos,
   // O 'true' indica que irá causar um PANIC (reboot) se houver timeout.
   // (Nota: Em núcleos ESP32 v3.0+ a assinatura muda, mas para v2.x isso é
   // perfeito)
+#if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
+  esp_task_wdt_config_t config = {
+      .timeout_ms = timeoutWatchdogSegundos * 1000,
+      .idle_core_mask = (1 << portNUM_PROCESSORS) - 1,
+      .trigger_panic = true,
+  };
+  esp_task_wdt_init(&config);
+#else
   esp_task_wdt_init(timeoutWatchdogSegundos, true);
+#endif
 
   // Adiciona a tarefa atual (o loop do Arduino) na lista de vigia do WDT.
   esp_task_wdt_add(NULL);

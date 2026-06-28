@@ -6,7 +6,7 @@
 
 Este módulo atua como o **Centro de Comando Físico** e Broker Local, espelhando as capacidades operacionais do Backend Web.
 
-## Abordagem de Software
+## Abordagem de Software (Mudado nao usar mais RTOS  e sim bare-metal )
 **FreeRTOS**
 *   **Por quê:** A tela ILI9488 de 3.5" exige alta taxa de transferência de dados via barramento SPI. O uso de uma engine gráfica robusta como a **LVGL** para renderizar botões, abas e animações gera gargalo de processamento.
 *   **Single-Core (Prioridades de Task):** O ESP32-S2 possui apenas um núcleo (Xtensa LX7). Portanto, não é possível separar a rede em um núcleo e a tela em outro. A solução arquitetural é usar as prioridades do FreeRTOS:
