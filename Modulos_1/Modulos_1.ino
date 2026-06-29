@@ -40,7 +40,7 @@ U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/U8X8_PIN_NONE,
                                          PINO_SCL, PINO_SDA);
 scGestorDisplay display;
 scTransceptorESPNow transceptor;
-scMQTTLib mqtt("usuario_mqtt", "senha_mqtt"); //
+scMQTTLib mqtt("silastorres", "010203"); // Hardcode provisorio sem Hub
 scRelogioSincronizado relogio;
 scAvisosSonoros avisosSonoros(PINO_BUZZER);
 scArmazenamentoLocal armazenamento;
@@ -69,7 +69,7 @@ void onVazamentoGas(bool detectado, uint16_t nivelAtual) {
 
   // Anti-SPOF: Comunicação Direta ESP-NOW Edge-Trigger
   String macAlvo = armazenamento.obterValor("peer_M2");
-  if (macAlvo == "") macAlvo = "11:22:33:44:55:66"; // MAC de Teste
+  if (macAlvo == "") macAlvo = "ff:ff:ff:ff:ff:ff"; // MEisso e um lixo !
 
   uint8_t macBytes[6] = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66};
   if (macAlvo.length() == 17) {
@@ -98,14 +98,36 @@ void CallbackTratarComandosM1(const char* cmd, JsonVariant args) {
         if (args.containsKey("tela_idle")) watchfaces.setModoTela(args["tela_idle"].as<uint8_t>());
         if (args.containsKey("sens_gas")) monitorGas.setSensibilidade(args["sens_gas"].as<uint16_t>());
         
-        if (args.containsKey("alm_prep") || args.containsKey("alm_crit")) {
-            uint32_t preparoAtual = gestorAlarmes.AlmPrep();
-            uint32_t criticoAtual = gestorAlarmes.AlmCrit();
-            
-            if (args.containsKey("alm_prep")) preparoAtual = args["alm_prep"].as<uint32_t>();
-            if (args.containsKey("alm_crit")) criticoAtual = args["alm_crit"].as<uint32_t>();
-            
-            gestorAlarmes.setAlarmes(preparoAtual, criticoAtual);
+        if (args.containsKey("alm_crit")) {
+            gestorAlarmes.setAlarmeCritico(args["alm_crit"].as<uint32_t>());
+        }
+        
+        if (args.containsKey("alm_prep")) {
+            gestorAlarmes.iniciarTimerPreparo(args["alm_prep"].as<uint32_t>());
+        }
+        
+        if (args.containsKey("temp_abs")) {
+            float tAbs = args["temp_abs"].as<float>();
+            leitorTermico.setLimiteAbsoluto(tAbs);
+            armazenamento.salvarChaveValor("temp_abs", String(tAbs));
+        }
+        
+        if (args.containsKey("temp_der")) {
+            float tDer = args["temp_der"].as<float>();
+            leitorTermico.setLimiteDerivada(tDer);
+            armazenamento.salvarChaveValor("temp_der", String(tDer));
+        }
+        
+        armazenamento.commitarAlteracoes();
+    }
+    else if (strcmp(cmd, "configurar_limiar_gas") == 0) {
+        if (args.containsKey("limiar")) {
+            uint16_t limiar = args["limiar"].as<uint16_t>();
+            monitorGas.setSensibilidade(limiar);
+            armazenamento.salvarChaveValor("lim_gas", String(limiar));
+            armazenamento.commitarAlteracoes();
+            logger.info("M1_CORE", "Limiar de gas atualizado via MQTT para: " + String(limiar));
+            avisosSonoros.tocar(BIP_LONGO);
         }
     }
     else if (strcmp(cmd, "solicitar_status") == 0) {
@@ -160,8 +182,19 @@ void setup() {
   monitorGas.inicializar(&logger, PINO_GAS);
   monitorGas.setCallbackVazamento(onVazamentoGas);
 
+  String valGas = armazenamento.obterValor("lim_gas");
+  if (valGas != "") {
+      monitorGas.setSensibilidade(valGas.toInt());
+  }
+
   leitorTermico.inicializar(&logger, PINO_TERMICO);
   leitorTermico.setCallbackEstadoForno(onEstadoForno);
+  
+  String vAbs = armazenamento.obterValor("temp_abs");
+  if (vAbs != "") leitorTermico.setLimiteAbsoluto(vAbs.toFloat());
+  
+  String vDer = armazenamento.obterValor("temp_der");
+  if (vDer != "") leitorTermico.setLimiteDerivada(vDer.toFloat());
 
   gestorRele.inicializar(&logger, PINO_RELE_SSR);
   gestorAlarmes.inicializar(&logger, &avisosSonoros);

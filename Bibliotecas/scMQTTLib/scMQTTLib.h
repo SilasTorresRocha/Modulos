@@ -14,7 +14,9 @@
 #include <PubSubClient.h>
 
 class scMQTTLib {
-private:
+  String _usuarioStr; // Copias seguras para quando injetado via EEPROM (M3)
+  String _senhaStr;
+  
   const char *_usuario;
   const char *_senha;
   const char *_servidor;
@@ -54,6 +56,9 @@ public:
 
   // Inicia e carrega topicos/IDs
   void iniciar();
+
+  // Permite injetar credenciais lidas da EEPROM/Flash apos o boot
+  void setCredenciais(const char* usuario, const char* senha);
 
   // Lógica de Reconexão Automática (Watchdog/Keep-Alive)
   void manterConexao();

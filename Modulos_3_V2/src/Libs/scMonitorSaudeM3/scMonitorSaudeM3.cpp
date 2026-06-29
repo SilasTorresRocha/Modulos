@@ -27,13 +27,13 @@ void scMonitorSaudeM3::processar() {
     // 1. Alimenta o cão de guarda físico do ESP32 para nao resetar
     _saudeGlobal.alimentarWatchdog();
 
-    // 2. Checagem de Memoria (Falha Critica abaixo de 30KB)
+    // 2. Checagem de Memoria (Falha Critica abaixo de 8KB)
     uint32_t ramLivre = _saudeGlobal.getRamLivre();
-    if (ramLivre < 30000 && !_alertaMemoriaDisparado) {
+    if (ramLivre < 4000 && !_alertaMemoriaDisparado) {
         _alertaMemoriaDisparado = true;
-        if (_logger != nullptr) _logger->erro("scMonitorSaude", "Vazamento de memoria ou sobrecarga (Heap < 30KB)!");
+        if (_logger != nullptr) _logger->erro("scMonitorSaude", "Vazamento critico (Heap < 4KB)!");
         if (_buzzer != nullptr) _buzzer->tocarSireneEmergencia();
-    } else if (ramLivre >= 35000) {
+    } else if (ramLivre >= 15000) {
         _alertaMemoriaDisparado = false; // Sistema se recuperou (Histerese)
     }
 

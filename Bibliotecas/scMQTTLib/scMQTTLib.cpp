@@ -26,6 +26,13 @@ scMQTTLib::scMQTTLib(const char *usuario, const char *senha,
   _contagemMensagens = 0;
 }
 
+void scMQTTLib::setCredenciais(const char* usuario, const char* senha) {
+  _usuarioStr = String(usuario);
+  _senhaStr = String(senha);
+  _usuario = _usuarioStr.c_str();
+  _senha = _senhaStr.c_str();
+}
+
 String scMQTTLib::obterMacHardware() {
   String mac = WiFi.macAddress();
   mac.replace(":", "");
@@ -35,8 +42,8 @@ String scMQTTLib::obterMacHardware() {
 void scMQTTLib::iniciar() {
   _instanciaAtual = this;
 
-  // Cria o ID baseado no padrao <usuario>_<MAC>
-  _idCliente = String(_usuario) + "_" + obterMacHardware();
+  // Cria o ID baseado no padrao <usuario>_M1_<MAC> para evitar colisao
+  _idCliente = String(_usuario) + "_M1_" + obterMacHardware();
 
   // (ESP Publica e API assina)
   _topicoTelemetria = String("telemetria/") + _usuario;
@@ -47,6 +54,7 @@ void scMQTTLib::iniciar() {
   _clienteMQTT.setClient(_clienteWiFi);
   _clienteMQTT.setServer(_servidor, _porta);
   _clienteMQTT.setCallback(scMQTTLib::callbackInternoMqtt);
+  _clienteMQTT.setBufferSize(512); // Previne heap nulo na Global Initialization do ESP8266
 
   _inicioJanelaLimitarTaxa = millis();
 }
@@ -177,3 +185,4 @@ bool scMQTTLib::internetDisponivel() {
   // Retorna true se a conexão TCP com o servidor na nuvem estiver ativa
   return _clienteMQTT.connected();
 }
+

@@ -100,8 +100,40 @@ void scWatchfacesM2::_desenharDashboard() {
 
 void scWatchfacesM2::_desenharSimples() {
     U8G2* u8g2 = _display->getU8G2();
+    
+    // 1. Relogio Digital Grande centralizado
+    u8g2->setFont(u8g2_font_logisoso32_tf); 
+    String horaStr = "--:--";
+    if (_relogio && _relogio->estaSincronizado()) {
+        uint32_t unixTime = _relogio->obterHoraUnix();
+        int min = (unixTime % 3600) / 60;
+        int hora = (unixTime % 86400) / 3600;
+        char buf[6];
+        sprintf(buf, "%02d:%02d", hora, min);
+        horaStr = String(buf);
+    }
+    // Desenha centralizado (X=20 aproxima pro meio em fonte 32)
+    u8g2->drawStr(18, 38, horaStr.c_str()); 
+    
+    // 2. Rodapé com Informações Secundárias
     u8g2->setFont(u8g2_font_ncenB08_tr);
-    u8g2->drawStr(0, 30, "M2 - Ativo");
+    
+    // Consumo (Esquerda)
+    float totalKw = _reles ? (_reles->getConsumoKWh(1) + _reles->getConsumoKWh(2)) : 0.0;
+    char bufKw[16];
+    sprintf(bufKw, "%.2f KWh", totalKw);
+    u8g2->drawStr(0, 62, bufKw);
+    
+    // Temperatura M1 (Direita)
+    float tempM1 = _telemetria ? _telemetria->obterTempM1() : 0.0;
+    char bufTemp[16];
+    if (tempM1 > 0.0) {
+        sprintf(bufTemp, "%.1f C", tempM1);
+    } else {
+        sprintf(bufTemp, "-- C");
+    }
+    int w = u8g2->getStrWidth(bufTemp);
+    u8g2->drawStr(128 - w, 62, bufTemp);
 }
 
 // ====================================================================
@@ -153,31 +185,49 @@ void scWatchfacesM2::desenharListaMenu(int nivelAtual, int cursor, bool emEdicao
     U8G2* u8g2 = _display->getU8G2();
     u8g2->setFont(u8g2_font_ncenB08_tr);
     
-    if (nivelAtual == 5) { // 5 = MENU_SISTEMA_INF (Aba de Diagnóstico)
+    if (nivelAtual == 7) { // 7 = MENU_SISTEMA_INF (Aba de Diagnóstico)
         _desenharSistemaInf();
+        return;
+    }
+    
+    if (nivelAtual == 6) { // 6 = MENU_AGENDAMENTOS
+        u8g2->drawStr(0, 10, "> AGENDAMENTOS");
+        u8g2->drawLine(0, 13, 128, 13);
+        
+        u8g2->drawStr(10, 30, "Acesse o");
+        u8g2->drawStr(10, 45, "Painel WEB");
+        
+        u8g2->setDrawColor(1);
+        u8g2->drawBox(0, 53, 128, 11);
+        u8g2->setDrawColor(0);
+        u8g2->drawStr(5, 62, "Voltar");
+        u8g2->setDrawColor(1);
         return;
     }
 
     // Mock das strings do menu (Seria otimizado para PROGMEM na pratica)
-    const char* itensRoot[] = {"Watchfaces", "Rele 1", "Rele 2", "Agendamentos", "Sistema (INF)"};
-    const char* itensWf[] = {"Analogico", "Digital", "Dashboard", "Simples", "Desligar Tela"};
-    const char* itensRelesSel[] = {"Selecionar Rele 1", "Selecionar Rele 2"};
-    const char* itensAgendamento[] = {"Criar Novo", "Ver Salvos", "Apagar Todos"};
+    const char* itensRoot[] = {"Watchfaces", "Rele 1", "Rele 2", "Agendamentos", "Sistema (INF)", "Voltar"};
+    const char* itensWf[] = {"Analogico", "Digital", "Dashboard", "Simples", "Desligar Tela", "Voltar"};
+    const char* itensRelesSel[] = {"Selecionar Rele 1", "Selecionar Rele 2", "Voltar"};
+    const char* itensAgendamento[] = {"Criar Novo", "Ver Salvos", "Apagar Todos", "Voltar"};
     
     // Arrays separados para evitar bug de indexação ao ocultar "Regra de Gas"
-    const char* itensComGas[] = {"Ligar / Desligar", "Regra de Gas", "Retorno Queda", "Resetar Consumo"};
-    const char* itensSemGas[] = {"Ligar / Desligar", "Retorno Queda", "Resetar Consumo"};
+    const char* itensComGas[] = {"Ligar / Desligar", "Potencia (W)", "Regra de Gas", "Retorno Queda", "Resetar Consumo", "Voltar"};
+    const char* itensSemGas[] = {"Ligar / Desligar", "Potencia (W)", "Retorno Queda", "Resetar Consumo", "Voltar"};
+    const char* itensRegraGas[] = {"Ignorar", "Desligar / Bloquear", "Forcar Exaustor", "Voltar"};
+    const char* itensRetornoQueda[] = {"Sempre Desligado", "Sempre Ligado", "Manter Ultimo", "Voltar"};
     
     const char** listaAtual = itensRoot;
-    int maxItens = 5;
+    int maxItens = 6;
     
-    if (nivelAtual == 1) { listaAtual = itensWf; maxItens = 5; }      // MENU_WATCHFACE_SEL
-    if (nivelAtual == 2) { listaAtual = itensRelesSel; maxItens = 2;} // MENU_RELE_SELECIONAR
+    if (nivelAtual == 1) { listaAtual = itensWf; maxItens = 6; }      // MENU_WATCHFACE_SEL
+    if (nivelAtual == 2) { listaAtual = itensRelesSel; maxItens = 3;} // MENU_RELE_SELECIONAR
     if (nivelAtual == 3) {                                            // MENU_RELE_OPCOES
         listaAtual = m1Inativo ? itensSemGas : itensComGas;
-        maxItens = m1Inativo ? 3 : 4; 
+        maxItens = m1Inativo ? 5 : 6; 
     }
-    if (nivelAtual == 4) { listaAtual = itensAgendamento; maxItens = 3; } // MENU_AGENDAMENTOS
+    if (nivelAtual == 4) { listaAtual = itensRetornoQueda; maxItens = 4; } // MENU_RETORNO_QUEDA
+    if (nivelAtual == 5) { listaAtual = itensRegraGas; maxItens = 4; } // MENU_REGRA_GAS
 
     // Calculo de Janela Visível (Paginação para não desenhar fora dos 64px de altura)
     int offset = 0;

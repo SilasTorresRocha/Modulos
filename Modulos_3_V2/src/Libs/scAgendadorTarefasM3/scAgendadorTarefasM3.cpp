@@ -5,16 +5,17 @@ static scGestorTelasM3* ptrTelasGlobal = nullptr;
 
 static void _cbSlideshowInterrompido() {
     if (ptrTelasGlobal) {
-        ptrTelasGlobal->mostrarDashboard();
+        ptrTelasGlobal->mostrarDashboardCompleto();
     }
 }
 
+#include <WiFi.h>
 // O MAC default para caso falhe na detecção via WiFi
 #define MAC_M3 "M3:00:11:22:33:44"
 
 scAgendadorTarefasM3::scAgendadorTarefasM3() : 
     _buzzer(PINO_BUZZER),
-    _mqtt("silas", "senha_mqtt_padrao") { // Mudar depois se for dinamico via EEPROM
+    _mqtt("", "") { // Inicia vazio. Será preenchido na inicialização via EEPROM
 }
 
 void scAgendadorTarefasM3::inicializar() {
@@ -24,10 +25,18 @@ void scAgendadorTarefasM3::inicializar() {
 
     // 1.5. Infraestrutura de Nuvem / Armazenamento Global
     _eeprom.inicializar(); // Inicializa NVS (Non-Volatile Storage) do ESP32
+    
+    String wifiSSID = _eeprom.obterValor("WIFI_SSID");
+    String wifiPass = _eeprom.obterValor("WIFI_PASS");
+    String mqttUser = _eeprom.obterValor("MQTT_USER");
+    String mqttPass = _eeprom.obterValor("MQTT_PASS");
+    
+    _mqtt.setCredenciais(mqttUser.c_str(), mqttPass.c_str());
     _mqtt.iniciar();
+    
     _rede.configurarComoHub(true); // Impede que o Hub pule de canal ESP-NOW
     _rede.injetarMQTT(&_mqtt);     // Para detecção avançada de Roteador Zumbi
-    _rede.inicializar("SUA_REDE_WIFI", "SUA_SENHA_WIFI", &_logger); // Wi-Fi em Background
+    _rede.inicializar(wifiSSID.c_str(), wifiPass.c_str(), &_logger); // Wi-Fi em Background
     _ota.inicializar(&_eeprom, &_logger, &_mqtt, "Módulo 3 (Hub Principal)");
 
     // 2. Saúde e Hardware Básico
@@ -36,6 +45,15 @@ void scAgendadorTarefasM3::inicializar() {
     _saude.inicializar(&_logger, &_rtc, &_sdCard, &_buzzer);
 
     // 3. Sistema de Arquivos (Base para Gráficos e Dicionários)
+    // No S2, o Arduino Core as vezes mapeia o FSPI/SPI padrão para pinos errados. 
+    // É vital fixar a trifásica de pinos (SCK=36, MISO=37, MOSI=35) ANTES do SD.begin.
+    
+    // BARE-METAL SPI FIX: Prevenir colisão no barramento desativando todos os escravos!
+    pinMode(PINO_CS_SD, OUTPUT); digitalWrite(PINO_CS_SD, HIGH);
+    pinMode(34, OUTPUT);         digitalWrite(34, HIGH); // TFT CS (PIN.txt)
+    pinMode(12, OUTPUT);         digitalWrite(12, HIGH); // Touch CS (PIN.txt)
+
+    SPI.begin(36, 37, 35, -1); 
     _sdCard.inicializar(PINO_CS_SD, &_logger);
     _gestorDispositivos.inicializar(&_logger);
     _gestorDispositivos.carregarDoSD(); // Puxa os apelidos da memória não volátil (EEPROM/SD)
@@ -47,20 +65,22 @@ void scAgendadorTarefasM3::inicializar() {
     _roteador.inicializar(&_logger, &_sdCard, &_radar);
     
     // O Despachante depende do Hardware Colateral e do Dicionário
-    _despachante.inicializar("MAC_M3", &_logger, &_buzzer, &_gestorDispositivos);
+    _despachante.inicializar(WiFi.macAddress().c_str(), &_logger, &_buzzer, &_gestorDispositivos);
 
-    // 5. Placa de Video (Aloca a RAM Estática)
-    _motorGrafico.inicializar(&_logger, &_saude);
-    
-    // O Slideshow precisa do LVGL de pé para mapear a pasta /Imagens
-    _slideshow.inicializar(&_logger);
+    // 5. Placa de Video (Aloca a RAM Estática/Dinâmica)
+    if (_motorGrafico.inicializar(&_logger, &_saude)) {
+        // O Slideshow precisa do LVGL de pé para mapear a pasta /Imagens
+        _slideshow.inicializar(&_logger);
 
-    // O Gestor de Telas amarra tudo visualmente
-    _gestorTelas.inicializar(&_logger, &_radar, &_gestorDispositivos);
-    ptrTelasGlobal = &_gestorTelas;
+        // Injeta os componentes base no Gestor de Telas para que a UI consiga interagir com o Sistema
+        _gestorTelas.inicializar(&_logger, &_radar, &_gestorDispositivos, &_eeprom, &_mqtt, &_rtc, &_rede, &_roteador);
+        ptrTelasGlobal = &_gestorTelas;
+    } else {
+        _logger.erro("M3", "Telas graficas abortadas devido a falha critica no Motor Grafico.");
+    }
 
     // 6. Telemetria (Observador Passivo)
-    _telemetria.inicializar("MAC_M3", &_logger, &_rtc, &_saude, &_sdCard);
+    _telemetria.inicializar(WiFi.macAddress().c_str(), &_logger, &_rtc, &_saude, &_sdCard, &_mqtt);
 
     _logger.info("scAgendadorTarefasM3", "=== BOOT CONCLUIDO COM SUCESSO. INGRESSANDO NO SUPER LOOP. ===");
 }
@@ -95,6 +115,31 @@ void scAgendadorTarefasM3::processar() {
 
     // 5. Motor Visual
     _motorGrafico.processar();
+    _gestorTelas.atualizarMenuInteligente(); // Cores dinâmicas nos Dashboards
+    _gestorTelas.processar();
+
+    // Anúncio periódico do Hub na Malha (a cada 10s) para resgatar nós offline/perdidos
+    static uint32_t ultimoAnuncio = 0;
+    if (millis() - ultimoAnuncio > 10000) {
+        ultimoAnuncio = millis();
+        String meuMac = WiFi.macAddress();
+        
+        StaticJsonDocument<256> doc;
+        doc["mac_origem"] = "HUB";
+        doc["mac_destino"] = "ALL";
+        doc["cmd"] = "set_peer_mac";
+        
+        JsonObject args = doc.createNestedObject("args");
+        args["tipo_alvo"] = "HUB";
+        args["mac_alvo"] = meuMac;
+
+        char buffer[256];
+        serializeJson(doc, buffer);
+        
+        // Envia o grito pelo rádio para quem estiver sem internet escutando (ou para pings novos)
+        _roteador.enviarBroadcast(buffer);
+        _logger.info("scAgendador", "Identidade do Hub (set_peer_mac) propagada via ESP-NOW.");
+    }
     _slideshow.processar(); // Troca as fotos a cada 10s se estiver ativo
     _buzzer.atualizar(); // Permite que a sirene não-bloqueante pulse
 
@@ -107,4 +152,28 @@ void scAgendadorTarefasM3::processar() {
 
     // 7. Cão de Guarda de Milissegundos
     _saude.processar();
+
+    // 8. Drenagem da Fila Idempotente (Se houver internet e SD Card)
+    if (_mqtt.internetDisponivel() && _sdCard.isAtivo()) {
+        File fila = _sdCard.abrirFilaOffline();
+        if (fila) {
+            bool falhouAlgum = false;
+            while (fila.available()) {
+                String linha = fila.readStringUntil('\n');
+                linha.trim();
+                if (linha.length() > 0) {
+                    if (!_mqtt.enviarJSON(linha.c_str())) {
+                        falhouAlgum = true;
+                        break; // Se caiu, para e tenta de novo no proximo loop
+                    }
+                }
+            }
+            fila.close();
+            
+            // Se varreu tudo com sucesso pro broker, limpa o arquivo!
+            if (!falhouAlgum) {
+                _sdCard.destruirFilaOffline();
+            }
+        }
+    }
 }

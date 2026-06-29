@@ -38,6 +38,9 @@ private:
     scLogger _logger;
     scRTCFisicoM3 _rtc;
     scGestorBuzzerM3 _buzzer;
+
+    bool _hubAnunciado = false;
+
     scGestorSDCardM3 _sdCard;
     scGestorDispositivosM3 _gestorDispositivos;
     scMonitorSaudeM3 _saude;

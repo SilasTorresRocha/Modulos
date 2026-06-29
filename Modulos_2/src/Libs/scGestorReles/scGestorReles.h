@@ -40,6 +40,16 @@ public:
     // Configurações
     void configurarRele(uint8_t id_rele, float potenciaW, uint8_t regraGas, uint8_t retornoPwr);
     
+    // Configurações Isoladas (UI Editor)
+    void setPotenciaW(uint8_t id_rele, float potenciaW);
+    float getPotenciaW(uint8_t id_rele);
+    
+    void setRegraGas(uint8_t id_rele, uint8_t regraGas);
+    uint8_t getRegraGas(uint8_t id_rele);
+    
+    void setRetornoPwr(uint8_t id_rele, uint8_t retornoPwr);
+    uint8_t getRetornoPwr(uint8_t id_rele);
+    
     // Matemática de Energia
     void resetarConsumo(uint8_t id_rele);
     float getConsumoKWh(uint8_t id_rele);

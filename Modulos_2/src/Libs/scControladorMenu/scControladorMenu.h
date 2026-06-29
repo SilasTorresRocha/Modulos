@@ -23,6 +23,8 @@ enum NivelMenu {
     MENU_WATCHFACE_SEL,   // Selecionar tela idle
     MENU_RELE_SELECIONAR, // Intermediario: Qual rele gerenciar?
     MENU_RELE_OPCOES,     // Opcoes de um rele alvo (Ligar, Retorno, Gas, Reset KWh)
+    MENU_RETORNO_QUEDA,   // Submenu para pós-queda de energia
+    MENU_REGRA_GAS,       // Submenu para escolher o comportamento em caso de gas
     MENU_AGENDAMENTOS,    // Arvore de Agendamentos (Stub por hora)
     MENU_SISTEMA_INF      // Abas de info tecnica
 };
@@ -39,6 +41,9 @@ public:
     
     // Interface de Rede para ser injetada pelo .ino quando chegar via MQTT/ESPNOW
     void notificarStatusPeer(String tipo, String status);
+    
+    // Interface de configuração via MQTT
+    void setWatchface(uint8_t id);
 
 private:
     scLogger* _logger;

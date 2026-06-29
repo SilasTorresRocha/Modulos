@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard </title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <!-- CSS Customizado -->
+    <link rel="stylesheet" href="/static/css/style.css">
+    <!-- Ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="background-effects">
+        <div class="glow-orb orb-1"></div>
+        <div class="glow-orb orb-2"></div>
+    </div>
+
+    <div class="dashboard-container">
+        <!-- Sidebar / Header Lateral -->
+        <aside class="sidebar glass-panel">
+            <div class="logo">
+                <i class="fa-solid fa-microchip"></i>
+                <h1>Nexus<span>IoT</span></h1>
+            </div>
+            
+            <nav class="menu">
+                <a href="#" class="active"><i class="fa-solid fa-border-all"></i> Dashboard</a>
+                <a href="#" onclick="abrirModalConfig()"><i class="fa-solid fa-sliders"></i> Configurações</a>
+                <a href="#" onclick="abrirModalComandos()"><i class="fa-solid fa-terminal"></i> Terminal</a>
+            </nav>
+
+            <div class="system-status">
+                <div class="status-indicator">
+                    <div class="pulse-dot green"></div>
+                    <span>API Online</span>
+                </div>
+                <div class="status-indicator">
+                    <div id="mqtt-pulse" class="pulse-dot red"></div>
+                    <span id="mqtt-text">Aguardando Dados...</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Conteúdo Principal -->
+        <main class="content">
+            <header class="top-bar glass-panel">
+                <div class="greeting">
+                    <h2>Visão Geral do Ecossistema</h2>
+                    <p>Última atualização: <span id="last-update" class="mono-text">--:--:--</span></p>
+                </div>
+                <button class="btn btn-primary" onclick="forcarAtualizacao()">
+                    <i class="fa-solid fa-rotate-right"></i> Atualizar Agora
+                </button>
+            </header>
+
+            <div class="modules-grid">
+                
+                <!-- MÓDULO 1: Forno & Gás -->
+                <section class="module-card glass-panel" id="card-m1">
+                    <div class="card-header">
+                        <div class="header-title">
+                            <i class="fa-solid fa-fire-burner"></i>
+                            <h3>Módulo 1 <span class="badge">Forno</span></h3>
+                        </div>
+                        <span class="mac-address mono-text" id="m1-mac">Offline</span>
+                    </div>
+                    
+                    <div class="metrics-grid">
+                        <div class="metric-box">
+                            <i class="fa-solid fa-temperature-half icon-orange"></i>
+                            <div class="metric-value">
+                                <span id="m1-temp">--</span><span class="unit">°C</span>
+                            </div>
+                            <span class="metric-label">Temperatura</span>
+                        </div>
+                        
+                        <div class="metric-box" id="gas-box">
+                            <i class="fa-solid fa-cloud icon-green" id="gas-icon"></i>
+                            <div class="metric-value">
+                                <span id="m1-gas">--</span><span class="unit">ADC</span>
+                            </div>
+                            <span class="metric-label">Nível de Gás</span>
+                        </div>
+                        
+                        <div class="metric-box">
+                            <i class="fa-solid fa-stopwatch icon-blue"></i>
+                            <div class="metric-value">
+                                <span id="m1-forno">--</span><span class="unit">s</span>
+                            </div>
+                            <span class="metric-label">Tempo Ligado</span>
+                        </div>
+                        
+                        <div class="metric-box">
+                            <i class="fa-solid fa-wifi icon-gray"></i>
+                            <div class="metric-value">
+                                <span id="m1-rssi">--</span><span class="unit">dBm</span>
+                            </div>
+                            <span class="metric-label">Sinal</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- MÓDULO 2: Relés -->
+                <section class="module-card glass-panel" id="card-m2">
+                    <div class="card-header">
+                        <div class="header-title">
+                            <i class="fa-solid fa-plug-circle-bolt"></i>
+                            <h3>Módulo 2 <span class="badge">Relés</span></h3>
+                        </div>
+                        <span class="mac-address mono-text" id="m2-mac">Offline</span>
+                    </div>
+                    
+                    <div class="relays-container">
+                        <!-- Relé 1 -->
+                        <div class="relay-box" id="r1-box">
+                            <div class="relay-info">
+                                <h4>Carga 1</h4>
+                                <span class="relay-power"><span id="m2-r1kw">--</span> KWh</span>
+                            </div>
+                            <div class="toggle-switch">
+                                <input type="checkbox" id="toggle-r1" onclick="enviarComandoRele(1, this.checked)">
+                                <label for="toggle-r1" class="slider"></label>
+                            </div>
+                        </div>
+
+                        <!-- Relé 2 -->
+                        <div class="relay-box" id="r2-box">
+                            <div class="relay-info">
+                                <h4>Carga 2</h4>
+                                <span class="relay-power"><span id="m2-r2kw">--</span> KWh</span>
+                            </div>
+                            <div class="toggle-switch">
+                                <input type="checkbox" id="toggle-r2" onclick="enviarComandoRele(2, this.checked)">
+                                <label for="toggle-r2" class="slider"></label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="total-power">
+                        <i class="fa-solid fa-bolt"></i> Consumo Total: <span id="m2-totkw" class="mono-text">--</span> KWh
+                    </div>
+                </section>
+
+            </div>
+
+            <!-- Terminal (Log) -->
+            <section class="log-section glass-panel mt-4">
+                <div class="card-header">
+                    <h3><i class="fa-solid fa-clock-rotate-left"></i> Histórico Recente (MQTT)</h3>
+                </div>
+                <div class="terminal-window" id="log-window">
+                    <!-- Preenchido via JS -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal Envio de Comando -->
+    <div id="modal-comando" class="modal">
+        <div class="modal-content glass-panel">
+            <span class="close" onclick="fecharModalComandos()">&times;</span>
+            <h2>Terminal de Comandos Raw</h2>
+            <p>Envie JSONs completos diretamente para os módulos.</p>
+            
+            <div class="form-group">
+                <label>Selecione um Template:</label>
+                <select id="template-select" onchange="carregarTemplate()">
+                    <option value="">-- Personalizado --</option>
+                    <option value="m1_solicitar">M1: Solicitar Status</option>
+                    <option value="m1_gas">M1: Configurar Limiar Gás</option>
+                    <option value="m1_timer">M1: Temporizador Preparo (10s)</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Payload (JSON):</label>
+                <textarea id="json-payload" rows="10" class="mono-text"></textarea>
+            </div>
+            
+            <button class="btn btn-primary" onclick="dispararComando()"><i class="fa-solid fa-paper-plane"></i> Enviar</button>
+            <p id="comando-feedback" class="feedback-text"></p>
+        </div>
+    </div>
+
+    <!-- Modal Configurações Globais -->
+    <div id="modal-config" class="modal">
+        <div class="modal-content glass-panel config-modal">
+            <div class="modal-header">
+                <h2><i class="fa-solid fa-sliders"></i> Configurações do Ecossistema</h2>
+                <span class="close" onclick="fecharModalConfig()">&times;</span>
+            </div>
+            <div class="modal-body config-grid">
+                
+                <!-- Coluna M1 -->
+                <div class="config-column">
+                    <h3><i class="fa-solid fa-fire-burner"></i> Forno (Módulo 1)</h3>
+                    
+                    <div class="input-group">
+                        <label>Tela Ociosa</label>
+                        <select id="cfg-m1-tela">
+                            <option value="0">Analógico</option>
+                            <option value="1">Digital</option>
+                            <option value="2">Dashboard</option>
+                            <option value="3">Simples</option>
+                            <option value="4">Desligada</option>
+                        </select>
+                        <button class="btn btn-sm" onclick="enviarCfgM1Tela()">Aplicar</button>
+                    </div>
+
+                    <div class="input-group">
+                        <label>Temperatura de Ruptura (°C) <small>(Considera o forno Ligado)</small></label>
+                        <input type="number" id="cfg-m1-temp" value="35.0" step="0.5">
+                        <button class="btn btn-sm" onclick="enviarCfgM1Temp()">Aplicar</button>
+                    </div>
+
+                    <div class="input-group">
+                        <label>Timer Preparo (s) <small>(0 = Desligado)</small></label>
+                        <input type="number" id="cfg-m1-prep" value="0">
+                        <button class="btn btn-sm" onclick="enviarCfgM1Timer()">Aplicar</button>
+                    </div>
+
+                    <div class="input-group">
+                        <label>Alarme Esquecimento (s) <small>(Gatilho de Emergência)</small></label>
+                        <input type="number" id="cfg-m1-crit" value="1800">
+                        <button class="btn btn-sm btn-danger" onclick="enviarCfgM1Crit()">Aplicar</button>
+                    </div>
+                </div>
+
+                <!-- Coluna M2 -->
+                <div class="config-column">
+                    <h3><i class="fa-solid fa-plug"></i> Relés (Módulo 2)</h3>
+                    
+                    <div class="input-group">
+                        <label>Limiar Global de Gás</label>
+                        <input type="number" id="cfg-m2-gas" value="1000">
+                        <button class="btn btn-sm btn-danger" onclick="enviarCfgM2Gas()">Aplicar</button>
+                    </div>
+
+                    <div class="input-group">
+                        <label>Tela Ociosa</label>
+                        <select id="cfg-m2-tela">
+                            <option value="0">Analógico</option>
+                            <option value="1">Digital</option>
+                            <option value="2">Dashboard</option>
+                            <option value="3">Simples</option>
+                            <option value="4">Desligada</option>
+                        </select>
+                        <button class="btn btn-sm" onclick="enviarCfgM2Tela()">Aplicar</button>
+                    </div>
+
+                    <div class="config-card">
+                        <h4>Relé 1 (Canal A)</h4>
+                        <div class="input-group input-inline">
+                            <label>Resetar KWh</label>
+                            <button class="btn btn-sm" onclick="enviarCfgM2Reset(1)">Zerar</button>
+                        </div>
+                    </div>
+
+                    <div class="config-card">
+                        <h4>Relé 2 (Canal B)</h4>
+                        <div class="input-group input-inline">
+                            <label>Resetar KWh</label>
+                            <button class="btn btn-sm" onclick="enviarCfgM2Reset(2)">Zerar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <p id="cfg-feedback" class="mono-text feedback-msg"></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/static/js/main.js"></script>
+</body>
+</html>

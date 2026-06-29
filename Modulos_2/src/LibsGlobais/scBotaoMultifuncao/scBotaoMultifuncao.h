@@ -24,6 +24,13 @@ private:
     BotaoCallback _cbDuploClique;
     BotaoCallback _cbSegurar;
     // Variaveis de controle de debounce e tempo
+    bool _estadoAnterior;
+    bool _estadoEstavel;
+    uint32_t _ultimoDebounceTime;
+    uint32_t _tempoPressionado;
+    bool _clicado;
+    bool _pressionadoLongo;
+    bool _acaoLongoExecutada;
 };
 
 #endif // SC_BOTAO_MULTIFUNCAO_H

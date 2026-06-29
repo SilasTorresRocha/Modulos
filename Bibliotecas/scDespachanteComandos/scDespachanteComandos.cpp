@@ -45,16 +45,17 @@ void scDespachanteComandos::processarPayload(const char* macOrigemTransceptor, c
         return; // Aborta e protege a placa de travamentos
     }
 
-    // 1. Validacao de Destino
-    const char* macDestino = doc["mac_destino"];
-    if (!macDestino) return; // Ignora se nao tiver o campo
-
-    String destinoStr = String(macDestino);
-    
-    // Permite que o Módulo escute o tráfego da rede (Mesh passiva) antes do filtro de destino
+    // Permite que o Módulo escute o tráfego da rede (Mesh passiva) antes do filtro estrito de destino.
+    // Isso é essencial para interceptar Telemetria alheia, que não possui campo "mac_destino".
     if (_callbackPromiscuo != nullptr) {
         _callbackPromiscuo(macOrigemTransceptor, payload); 
     }
+
+    // 1. Validacao de Destino para Comandos Locais
+    const char* macDestino = doc["mac_destino"];
+    if (!macDestino) return; // Se não for comando direcionado (não tem destino), encerra aqui.
+
+    String destinoStr = String(macDestino);
     
     // Se a mensagem nao for para mim ("mac exato") e nao for para todos ("ALL"), ignoro a entrega local.
     if (destinoStr != _macLocal && destinoStr != "ALL") {

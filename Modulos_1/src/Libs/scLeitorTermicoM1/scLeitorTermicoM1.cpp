@@ -62,6 +62,15 @@ void scLeitorTermicoM1::setLimiteAbsoluto(float limite) {
     }
 }
 
+void scLeitorTermicoM1::setLimiteDerivada(float limiteDerivada) {
+    if (_limiteDerivada != limiteDerivada) {
+        _limiteDerivada = limiteDerivada;
+        if (_logger) {
+            _logger->info("TERM_M1", "Limite térmico de subida alterado para: " + String(_limiteDerivada) + " C/s");
+        }
+    }
+}
+
 void scLeitorTermicoM1::setCallbackEstadoForno(CallbackEstadoForno callback) {
     _callback = callback;
 }
@@ -96,8 +105,13 @@ void scLeitorTermicoM1::processar() {
 
             // Previne falha matemática caso o loop gire sem consumir millis
             if (deltaT > 0) {
-                // Fator de escala * 1000 pois deltaT está em milissegundos
-                _derivadaTermica = ((_temperaturaAtual - _temperaturaAnterior) / (float)deltaT) * 1000.0;
+                if (_temperaturaAnterior == 0.0) {
+                    // Ignora a derivada na primeira amostragem após o boot para evitar falsos "Chama Alta"
+                    _derivadaTermica = 0.0;
+                } else {
+                    // Fator de escala * 1000 pois deltaT está em milissegundos
+                    _derivadaTermica = ((_temperaturaAtual - _temperaturaAnterior) / (float)deltaT) * 1000.0;
+                }
             } else {
                 _derivadaTermica = 0.0;
             }
@@ -114,8 +128,11 @@ void scLeitorTermicoM1::processar() {
                     _fornoLigado = true;
                 }
             } else {
-                // Para deduzir o Desligar: Tem que estar comprovadamente resfriando (derivada negativa) E abaixo da margem de calor extremo com histerese garantida para evitar falsos "Fim de ciclo".
-                if (_derivadaTermica <= -0.1 && _temperaturaAtual < (_limiteAbsoluto - histerese)) {
+                // Para deduzir o Desligar: 
+                // Condição 1: Esfriando comprovadamente (derivada negativa) E saiu do pico de calor.
+                // Condição 2: Temperatura caiu abaixo do limite menos a histerese (Mesmo se a derivada for zero e estabilizou no ambiente).
+                if ((_derivadaTermica <= -0.1 && _temperaturaAtual < _limiteAbsoluto) || 
+                    _temperaturaAtual < (_limiteAbsoluto - histerese)) {
                     _fornoLigado = false;
                 }
             }

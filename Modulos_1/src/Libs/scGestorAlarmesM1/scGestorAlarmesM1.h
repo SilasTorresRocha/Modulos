@@ -13,7 +13,9 @@ public:
     void inicializar(scLogger* logger, scAvisosSonoros* avisosSonoros);
 
     // Recebe e atualiza os limites de tempo (contrato MQTT)
-    void setAlarmes(uint32_t preparoSegundos, uint32_t criticoSegundos);
+    void setAlarmeCritico(uint32_t criticoSegundos);
+    void iniciarTimerPreparo(uint32_t preparoSegundos);
+    void pararTimerPreparo();
 
     // Listeners do estado das outras bibliotecas.
     // Usados pelas Callbacks do Forno e do Gás lá na main.
@@ -39,6 +41,9 @@ private:
     bool _vazamentoGas;
 
     uint32_t _inicioFornoMillis;
+    uint32_t _inicioPrepMillis;
+    bool _almPrepAtivo;
+    
     PadraoSom _alarmeAtual;
 };
 

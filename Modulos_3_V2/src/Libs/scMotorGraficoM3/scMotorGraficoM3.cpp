@@ -21,27 +21,35 @@ bool scMotorGraficoM3::inicializar(scLogger* logger, scMonitorSaudeM3* saude) {
     ptrHardwareTft = &_tft;
 
     // 1. Setup Básico do LCD via SPI
+    if (_logger != nullptr) _logger->info("scMotorGrafico", "DEBUG: Iniciando TFT begin...");
     _tft.begin();
+    if (_logger != nullptr) _logger->info("scMotorGrafico", "DEBUG: TFT begin concluido. Configurando rotacao...");
     _tft.setRotation(1); // Paisagem default (480x320)
     
     // Calibração embutida (Valores dependem do display XPT2046)
     uint16_t calData[5] = { 275, 3620, 264, 3532, 1 }; 
+    if (_logger != nullptr) _logger->info("scMotorGrafico", "DEBUG: Configurando Touch...");
     _tft.setTouch(calData);
 
-    // 2. Setup Backlight Analógico (API Core v3.0+)
-    ledcAttach(PINO_BACKLIGHT, 5000, 8);
-    ajustarBrilho(255); // 100%
+    // 2. Backlight: Omitido. Ligue o pino 'BL' ou 'LED' do Display DIRETO no 3.3V da placa!
+    // (Ligar direto no GPIO 32 estava causando Brownout Reset por excesso de corrente)
+    if (_logger != nullptr) _logger->info("scMotorGrafico", "DEBUG: Setup de Backlight isolado (Ligue no 3.3V físico).");
 
     // 3. Inicializa Core Semântico
+    if (_logger != nullptr) _logger->info("scMotorGrafico", "DEBUG: Inicializando Core LVGL...");
     lv_init();
 
     // 4. Inicializa o Buffer de Rasterização na Stack/Heap Dinâmico (Para salvar o Linker)
-    _bufDraw = (lv_color_t*)heap_caps_malloc(TFT_LARGURA * 30 * sizeof(lv_color_t), MALLOC_CAP_DMA | MALLOC_CAP_INTERNAL);
+    // Reduzido para 15 linhas (14.4 KB) para garantir alocação segura em placas com PSRAM desativado
+    if (_logger != nullptr) _logger->info("scMotorGrafico", "DEBUG: Alocando Buffer de Desenho na Heap DMA...");
+    _bufDraw = (lv_color_t*)heap_caps_malloc(TFT_LARGURA * 15 * sizeof(lv_color_t), MALLOC_CAP_DMA);
     if (!_bufDraw) {
         if (_logger != nullptr) _logger->erro("scMotorGrafico", "PANIC: Falha ao alocar Memoria DMA para Display!");
-        return false;
+        return false; // Retorna falso, abortando a construcao das telas no Agendador
     }
-    lv_disp_draw_buf_init(&_drawBufStruct, _bufDraw, NULL, TFT_LARGURA * 30);
+    
+    if (_logger != nullptr) _logger->info("scMotorGrafico", "DEBUG: Registrando Buffer no LVGL...");
+    lv_disp_draw_buf_init(&_drawBufStruct, _bufDraw, NULL, TFT_LARGURA * 15);
 
     // 5. Acopla LVGL ao Display de Saida (Renderer)
     lv_disp_drv_init(&_dispDrv);
@@ -100,7 +108,7 @@ void scMotorGraficoM3::processar() {
 }
 
 void scMotorGraficoM3::ajustarBrilho(uint8_t brilho) {
-    ledcWrite(PINO_BACKLIGHT, brilho); // API Core v3.0+ usa pino direto, não canal
+    // Isolado para evitar Brownout. Controle de hardware.
 }
 
 void scMotorGraficoM3::rotacionar(uint8_t orientacao) {
@@ -158,8 +166,9 @@ void scMotorGraficoM3::_touchReadCb(lv_indev_drv_t* indev_driver, lv_indev_data_
         data->state = LV_INDEV_STATE_REL;
     } else {
         data->state = LV_INDEV_STATE_PR;
-        data->point.x = touchX;
-        data->point.y = touchY;
+        // Compensação Bare-Metal de Eixo Invertido (Hardware Mirroring)
+        data->point.x = TFT_LARGURA - touchX;
+        data->point.y = TFT_ALTURA - touchY;
     }
 }
 

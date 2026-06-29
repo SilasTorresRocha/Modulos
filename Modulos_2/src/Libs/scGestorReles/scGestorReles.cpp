@@ -61,8 +61,9 @@ void scGestorReles::inicializar(scLogger* logger, scArmazenamentoLocal* armazena
         _aplicarEstadoFisico(id);
         
         // Inicia âncora de tempo se atracou ligado
-        if (estadoAlvo && _relogio && _relogio->estaSincronizado()) {
-            _reles[i].tsUltimoLigamento = _relogio->obterHoraUnix();
+        if (estadoAlvo) {
+            _reles[i].tsUltimoLigamento = millis();
+            _reles[i].tsUltimoSalvo = millis();
         }
     }
 }
@@ -142,9 +143,9 @@ bool scGestorReles::setEstadoRele(uint8_t id_rele, bool ligar) {
     
     // Se estava ligado e agora vai desligar, calcula e salva o consumo do período
     if (_reles[i].estadoLigado && !ligar) {
-        if (_relogio && _relogio->estaSincronizado() && _reles[i].tsUltimoLigamento > 0) {
-            uint32_t agora = _relogio->obterHoraUnix();
-            float horasDecorridas = (agora - _reles[i].tsUltimoLigamento) / 3600.0;
+        if (_reles[i].tsUltimoLigamento > 0) {
+            uint32_t agora = millis();
+            float horasDecorridas = (agora - _reles[i].tsUltimoLigamento) / 3600000.0f; // millis para horas
             float consumoSessao = (_reles[i].potenciaW / 1000.0) * horasDecorridas;
             _reles[i].consumoAcumuladoKWh += consumoSessao;
             _salvarConsumoPersistente(id_rele);
@@ -154,10 +155,8 @@ bool scGestorReles::setEstadoRele(uint8_t id_rele, bool ligar) {
     
     // Se estava desligado e vai ligar, cria a âncora de tempo
     if (!_reles[i].estadoLigado && ligar) {
-        if (_relogio && _relogio->estaSincronizado()) {
-            _reles[i].tsUltimoLigamento = _relogio->obterHoraUnix();
-            _reles[i].tsUltimoSalvo = _reles[i].tsUltimoLigamento;
-        }
+        _reles[i].tsUltimoLigamento = millis();
+        _reles[i].tsUltimoSalvo = millis();
     }
     
     // Aplica as mudanças
@@ -197,9 +196,9 @@ void scGestorReles::resetarConsumo(uint8_t id_rele) {
     _reles[i].consumoAcumuladoKWh = 0.0;
     
     // Se estiver ligado, reseta a âncora para não considerar o passado na próxima conta
-    if (_reles[i].estadoLigado && _relogio && _relogio->estaSincronizado()) {
-        _reles[i].tsUltimoLigamento = _relogio->obterHoraUnix();
-        _reles[i].tsUltimoSalvo = _reles[i].tsUltimoLigamento;
+    if (_reles[i].estadoLigado) {
+        _reles[i].tsUltimoLigamento = millis();
+        _reles[i].tsUltimoSalvo = millis();
     }
     
     _salvarConsumoPersistente(id_rele);
@@ -211,10 +210,10 @@ float scGestorReles::getConsumoKWh(uint8_t id_rele) {
     float retornoAcumulado = _reles[i].consumoAcumuladoKWh;
     
     // Se estiver ligado neste exato milissegundo, adiciona o delta provisório
-    if (_reles[i].estadoLigado && _relogio && _relogio->estaSincronizado() && _reles[i].tsUltimoLigamento > 0) {
-        uint32_t agora = _relogio->obterHoraUnix();
-        if (agora > _reles[i].tsUltimoLigamento) {
-            float horasDecorridas = (agora - _reles[i].tsUltimoLigamento) / 3600.0;
+    if (_reles[i].estadoLigado && _reles[i].tsUltimoLigamento > 0) {
+        uint32_t agora = millis();
+        if (agora >= _reles[i].tsUltimoLigamento) { // Checagem simples (ignora wrap around para fins de UI)
+            float horasDecorridas = (agora - _reles[i].tsUltimoLigamento) / 3600000.0f;
             float consumoProvisorio = (_reles[i].potenciaW / 1000.0) * horasDecorridas;
             retornoAcumulado += consumoProvisorio;
         }
@@ -224,10 +223,52 @@ float scGestorReles::getConsumoKWh(uint8_t id_rele) {
 
 uint32_t scGestorReles::getTempoLigadoSessao(uint8_t id_rele) {
     int i = _idx(id_rele);
-    if (!_reles[i].estadoLigado || !_relogio || !_relogio->estaSincronizado() || _reles[i].tsUltimoLigamento == 0) {
+    if (!_reles[i].estadoLigado || _reles[i].tsUltimoLigamento == 0) {
         return 0;
     }
-    return _relogio->obterHoraUnix() - _reles[i].tsUltimoLigamento;
+    return (millis() - _reles[i].tsUltimoLigamento) / 1000;
+}
+
+void scGestorReles::setPotenciaW(uint8_t id_rele, float potenciaW) {
+    int i = _idx(id_rele);
+    
+    // Antes de alterar a potência, se o relé estiver ligado, precisamos "fechar a conta" 
+    // com a potência velha e reiniciar o relógio para a potência nova!
+    if (_reles[i].estadoLigado && _reles[i].tsUltimoLigamento > 0) {
+        uint32_t agora = millis();
+        float horasDecorridas = (agora - _reles[i].tsUltimoLigamento) / 3600000.0f;
+        float consumoSessao = (_reles[i].potenciaW / 1000.0) * horasDecorridas;
+        _reles[i].consumoAcumuladoKWh += consumoSessao;
+        _salvarConsumoPersistente(id_rele);
+        
+        // Renova a âncora para começar a contar com a nova potência daqui em diante
+        _reles[i].tsUltimoLigamento = agora;
+        _reles[i].tsUltimoSalvo = agora;
+    }
+    
+    configurarRele(id_rele, potenciaW, _reles[i].regraGas, _reles[i].retornoPwr);
+}
+
+float scGestorReles::getPotenciaW(uint8_t id_rele) {
+    return _reles[_idx(id_rele)].potenciaW;
+}
+
+void scGestorReles::setRegraGas(uint8_t id_rele, uint8_t regraGas) {
+    int i = _idx(id_rele);
+    configurarRele(id_rele, _reles[i].potenciaW, regraGas, _reles[i].retornoPwr);
+}
+
+uint8_t scGestorReles::getRegraGas(uint8_t id_rele) {
+    return _reles[_idx(id_rele)].regraGas;
+}
+
+void scGestorReles::setRetornoPwr(uint8_t id_rele, uint8_t retornoPwr) {
+    int i = _idx(id_rele);
+    configurarRele(id_rele, _reles[i].potenciaW, _reles[i].regraGas, retornoPwr);
+}
+
+uint8_t scGestorReles::getRetornoPwr(uint8_t id_rele) {
+    return _reles[_idx(id_rele)].retornoPwr;
 }
 
 void scGestorReles::acionarEmergenciaGas(bool vazamentoDetectado) {
@@ -262,18 +303,16 @@ bool scGestorReles::EmergenciaGasAtiva(uint8_t id_rele) {
 }
 
 void scGestorReles::loop() {
-    if (!_relogio || !_relogio->estaSincronizado()) return;
-    
-    uint32_t agora = _relogio->obterHoraUnix();
+    uint32_t agora = millis();
     
     // Backup periódico da memória de consumo para não perder em caso de queda de energia
     for (int i = 0; i < 2; i++) {
         if (_reles[i].estadoLigado && _reles[i].tsUltimoLigamento > 0) {
-            // Se passou mais de X tempo desde o último save parcial
-            if (agora - _reles[i].tsUltimoSalvo >= INTERVALO_SALVAMENTO_KWH_SEG) {
+            // Se passou mais de X tempo desde o último save parcial (INTERVALO em segundos * 1000 = millis)
+            if (agora - _reles[i].tsUltimoSalvo >= (INTERVALO_SALVAMENTO_KWH_SEG * 1000)) {
                 
                 // Consolida o trecho na memória real
-                float horasDecorridas = (agora - _reles[i].tsUltimoLigamento) / 3600.0;
+                float horasDecorridas = (agora - _reles[i].tsUltimoLigamento) / 3600000.0f;
                 float consumoParcial = (_reles[i].potenciaW / 1000.0) * horasDecorridas;
                 
                 _reles[i].consumoAcumuladoKWh += consumoParcial;

@@ -223,6 +223,22 @@ Disparado pelo Hub/Backend em Broadcast para avisar aos módulos locais (que nã
     "status": "inativo" // "online", "offline" (sem net, mas vivo), "inativo" (morto)
   }
 }
+}
+```
+
+**Repasse de Telemetria (Gateway Virtual):**
+Disparado pelo Hub/Backend para informar aos módulos locais sobre as leituras de outro módulo (quando eles estão fora do alcance do ESP-NOW e dependem apenas do Wi-Fi/MQTT).
+```json
+{
+  "mac_origem": "HUB",
+  "mac_destino": "ALL",
+  "cmd": "repassar_telemetria",
+  "args": {
+    "tipo": "M1",
+    "temp": 29.5,
+    "gas": 1500
+  }
+}
 ```
 
 **Manutenção (Ping e Reboot):**
@@ -326,6 +342,16 @@ Disparado pelo Hub/Backend em Broadcast para avisar aos módulos locais (que nã
   "mac_destino": "AA:BB:CC:DD:EE:22",
   "cmd": "reset_consumo",
   "args": {"id_rele": 1}     // 1, 2 ou "ALL"
+}
+```
+```json
+{
+  "mac_origem": "HUB",
+  "mac_destino": "AA:BB:CC:DD:EE:22",
+  "cmd": "configurar_limiar_gas",
+  "args": {
+    "limiar": 1000
+  }
 }
 ```
 

@@ -158,3 +158,12 @@ bool scRadarEcossistemaM3::existeModuloDoTipo(const char* tipo) const {
     }
     return false;
 }
+
+EstadoNo scRadarEcossistemaM3::obterEstadoPorTipo(const char* tipo) const {
+    for (int i = 0; i < MAX_NODOS_RADAR; i++) {
+        if (_nodos[i].ocupado && strcmp(_nodos[i].tipo, tipo) == 0) {
+            return _nodos[i].estadoAtual;
+        }
+    }
+    return VERMELHO_MORTO;
+}

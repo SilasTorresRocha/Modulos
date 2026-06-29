@@ -45,6 +45,13 @@ void scControladorMenu::_salvarPreferencias() {
     // scArmazenamentoLocal já gerencia o commit
 }
 
+void scControladorMenu::setWatchface(uint8_t id) {
+    if (id > 4) id = 0;
+    _watchfaceSelecionada = id;
+    _salvarPreferencias();
+    if (_logger) _logger->info("CONTROLADOR_MENU", "Watchface alterada via MQTT para: " + String(id));
+}
+
 void scControladorMenu::notificarStatusPeer(String tipo, String status) {
     if (tipo == "M1") {
         _m1Inativo = (status == "inativo");
@@ -59,11 +66,13 @@ void scControladorMenu::notificarStatusPeer(String tipo, String status) {
 
 int scControladorMenu::_obterMaxOpcoes(NivelMenu nivel) {
     switch(nivel) {
-        case MENU_ROOT: return 5; // Watchfaces, Rele 1, Rele 2, Agendamentos, Sistema
-        case MENU_WATCHFACE_SEL: return 5; // Analogico, Digital, Dash, Simples, Off
-        case MENU_RELE_SELECIONAR: return 2; // R1, R2
+        case MENU_ROOT: return 6; // Watchfaces, Rele 1, Rele 2, Agendamentos, Sistema, Voltar
+        case MENU_WATCHFACE_SEL: return 6; // Analogico, Digital, Dash, Simples, Off, Voltar
+        case MENU_RELE_SELECIONAR: return 3; // R1, R2, Voltar
         case MENU_RELE_OPCOES: 
-            return _m1Inativo ? 3 : 4; // Se Inativo esconde Config Gas (que e o 4º item)
+            return _m1Inativo ? 5 : 6; // Ligar, Potencia, (Gas), Retorno, Reset, Voltar
+        case MENU_RETORNO_QUEDA: return 4; // Off, On, Ultimo, Voltar
+        case MENU_REGRA_GAS: return 4; // Ignorar, Desligar, Exaustor, Voltar
         default: return 1;
     }
 }
@@ -89,10 +98,16 @@ void scControladorMenu::_processarEncoder() {
         if (_cursorPos > maxOp) _cursorPos = 0;
     } 
     else if (_estadoAtual == UI_EDICAO) {
-        _cursorEdicao += delta;
-        // Limites da edição dependem do contexto (simplificando por hora)
-        if (_cursorEdicao < 0) _cursorEdicao = 0;
-        if (_cursorEdicao > 3) _cursorEdicao = 3; 
+        // Se a gente ta editando a Potencia (cursorPos == 1 na tela RELE_OPCOES)
+        if (_nivelAtual == MENU_RELE_OPCOES && _cursorPos == 1) {
+            _cursorEdicao += (delta * 50); // Incrementa de 50W em 50W
+            if (_cursorEdicao < 0) _cursorEdicao = 0;
+            if (_cursorEdicao > 3500) _cursorEdicao = 3500;
+        } else {
+            _cursorEdicao += delta;
+            if (_cursorEdicao < 0) _cursorEdicao = 0;
+            if (_cursorEdicao > 3) _cursorEdicao = 3; 
+        }
     }
 }
 
@@ -107,16 +122,60 @@ void scControladorMenu::_processarClique() {
         } 
         else if (_estadoAtual == UI_MENU) {
             // Entrar no nivel filho
-            switch(_nivelAtual) {
-                case MENU_ROOT: _executarAcaoMenuRoot(); break;
-                case MENU_WATCHFACE_SEL: _executarAcaoMenuWatchface(); break;
-                case MENU_RELE_SELECIONAR: _executarAcaoMenuReleSel(); break;
-                case MENU_RELE_OPCOES: _executarAcaoMenuReleOpcoes(); break;
-                default: break;
+            int maxOp = _obterMaxOpcoes(_nivelAtual) - 1;
+            
+            if (_nivelAtual == MENU_SISTEMA_INF) {
+                // Tela INF não é um menu comum, clicar nela sempre volta!
+                _estadoAtual = UI_MENU;
+                _nivelAtual = MENU_ROOT;
+                _cursorPos = 0;
+            }
+            else if (_cursorPos == maxOp) { 
+                // A ultima opcao de QUALQUER menu é sempre o "Voltar"
+                if (_nivelAtual == MENU_ROOT) {
+                    _estadoAtual = UI_WATCHFACE;
+                } else {
+                    _nivelAtual = MENU_ROOT;
+                    _cursorPos = 0;
+                }
+            } else {
+                switch(_nivelAtual) {
+                    case MENU_ROOT: _executarAcaoMenuRoot(); break;
+                    case MENU_WATCHFACE_SEL: _executarAcaoMenuWatchface(); break;
+                    case MENU_RELE_SELECIONAR: _executarAcaoMenuReleSel(); break;
+                    case MENU_RELE_OPCOES: _executarAcaoMenuReleOpcoes(); break;
+                    case MENU_AGENDAMENTOS: 
+                        // Implementacao futura: Criar menu complexo de hora/dia. 
+                        // Por hora, recua para a raiz.
+                        _estadoAtual = UI_MENU;
+                        _nivelAtual = MENU_ROOT;
+                        _cursorPos = 0;
+                        break;
+                    case MENU_REGRA_GAS: // Salva regra e volta
+                        if (_reles) {
+                            if (_cursorPos < 3) _reles->setRegraGas(_releAlvoContexto, _cursorPos + 1);
+                        }
+                        _estadoAtual = UI_MENU;
+                        _nivelAtual = MENU_RELE_OPCOES;
+                        _cursorPos = 0;
+                        break;
+                    case MENU_RETORNO_QUEDA: // Salva retorno e volta
+                        if (_reles) {
+                            if (_cursorPos < 3) _reles->setRetornoPwr(_releAlvoContexto, _cursorPos + 1);
+                        }
+                        _estadoAtual = UI_MENU;
+                        _nivelAtual = MENU_RELE_OPCOES;
+                        _cursorPos = 0;
+                        break;
+                    default: break;
+                }
             }
         }
         else if (_estadoAtual == UI_EDICAO) {
             // Confirma edicao
+            if (_nivelAtual == MENU_RELE_OPCOES && _cursorPos == 1) {
+                if (_reles) _reles->setPotenciaW(_releAlvoContexto, _cursorEdicao);
+            }
             _estadoAtual = UI_MENU; // Volta pro menu apos confirmar
         }
     }
@@ -161,17 +220,30 @@ void scControladorMenu::_executarAcaoMenuReleSel() {
 }
 
 void scControladorMenu::_executarAcaoMenuReleOpcoes() {
-    // Opcoes do rele: 0=Ligar/Desl, 1=Regra Gas (se visivel), 2=Pós Queda, 3=Reset KWh
-    // A logica exata de edicao entrara aqui
+    // Opcoes: 0=Ligar/Desl, 1=Potencia, 2=Regra Gas(se visivel), 3=Pos Queda, 4=Reset KWh
+    int offset = _m1Inativo ? 1 : 0;
+    
     if (_cursorPos == 0) { // Alternar status do relé
         if (_reles) {
             bool est = _reles->getEstadoRele(_releAlvoContexto);
             bool ok = _reles->setEstadoRele(_releAlvoContexto, !est);
-            // Se ok for false e EmergenciaGasAtiva for true, o Popup cuida
         }
-    } else if (_cursorPos == 1 && !_m1Inativo) { // Regra Gas
+    } else if (_cursorPos == 1) { // Potencia
         _estadoAtual = UI_EDICAO;
-        _cursorEdicao = 0; // Pegaria da leitura real da memoria
+        _cursorEdicao = _reles ? _reles->getPotenciaW(_releAlvoContexto) : 0;
+    } else if (!_m1Inativo && _cursorPos == 2) { // Regra Gas
+        _estadoAtual = UI_MENU;
+        _nivelAtual = MENU_REGRA_GAS;
+        _cursorPos = _reles ? (_reles->getRegraGas(_releAlvoContexto) - 1) : 0;
+        if (_cursorPos < 0) _cursorPos = 0;
+    } else if (_cursorPos == (3 - offset)) { // Retorno Queda
+        _estadoAtual = UI_MENU;
+        _nivelAtual = MENU_RETORNO_QUEDA;
+        _cursorPos = _reles ? (_reles->getRetornoPwr(_releAlvoContexto) - 1) : 0;
+        if (_cursorPos < 0) _cursorPos = 0;
+    } else if (_cursorPos == (4 - offset)) { // Resetar Consumo
+        if (_reles) _reles->resetarConsumo(_releAlvoContexto);
+        _estadoAtual = UI_WATCHFACE; // Volta para o relogio apos zerar
     }
 }
 
@@ -210,5 +282,11 @@ void scControladorMenu::loop() {
     _processarEncoder();
     _processarClique();
     _verificarTimeout();
+
+    U8G2* u8g2 = _display->getU8G2();
+    if (u8g2) u8g2->clearBuffer();
+    
     _desenhar();
+    
+    if (u8g2) u8g2->sendBuffer();
 }

@@ -20,13 +20,8 @@ void scGestorRede::inicializar(const char *ssid, const char *password, scLogger*
   _password = password;
   _logger = logger;
 
-  // O Hub (M3) opera como AP_STA (Hospedeiro ESP-NOW + Cliente Wi-Fi)
-  // Os nós (M1, M2) operam puramente como STA
-  if (_eHub) {
-    WiFi.mode(WIFI_AP_STA);
-  } else {
-    WiFi.mode(WIFI_STA);
-  }
+  // O Hub (M3) e os nós operam puramente como STA
+  WiFi.mode(WIFI_STA);
 
   WiFi.disconnect();
 

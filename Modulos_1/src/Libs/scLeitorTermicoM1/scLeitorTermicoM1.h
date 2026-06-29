@@ -20,8 +20,9 @@ public:
     // Motor assíncrono termal. Deve ser invocado continuamente no super loop().
     void processar();
 
-    // Configuração remota do limite extremo de calor (Ponto de Ruptura)
+    // Atualiza remota/localmente o ponto cego de ruptura térmica e variação (C°/s)
     void setLimiteAbsoluto(float limite);
+    void setLimiteDerivada(float limiteDerivada);
 
     // Registra a função de callback acionada na transição do estado do forno
     void setCallbackEstadoForno(CallbackEstadoForno callback);

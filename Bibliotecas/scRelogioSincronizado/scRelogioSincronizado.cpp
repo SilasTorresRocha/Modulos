@@ -5,10 +5,13 @@ scRelogioSincronizado::scRelogioSincronizado() {
     _timestampBase = 0;
     _millisSincronizacao = 0;
     _sincronizado = false;
+    _offsetFusoHorario = 0;
 }
 
 void scRelogioSincronizado::inicializar(long fusoHorarioSegundos) {
-    // Inicia o SNTP nativo do ESP. Ele fará a comunicacao com a porta UDP 123 completamente em background pelo OS da placa, sem travar o loop.
+    _offsetFusoHorario = fusoHorarioSegundos;
+    // Inicia o SNTP nativo do ESP. 
+    // Usamos a função antiga do configTime para setar o offset diretamente
     configTime(fusoHorarioSegundos, 0, "pool.ntp.org", "time.nist.gov", "a.st1.ntp.br");
 }
 
@@ -40,7 +43,10 @@ uint32_t scRelogioSincronizado::obterHoraUnix() {
     uint32_t deltaMillis = (uint32_t)(millis() - _millisSincronizacao);
     uint32_t deltaSegundos = deltaMillis / 1000;
     
-    return _timestampBase + deltaSegundos;
+    // O time(nullptr) sempre retorna UTC puro. 
+    // Como os modulos Watchface e Agendamento usam a saida dessa funcao fazendo modulo matematico 
+    // puro (sem usar localtime()), injetamos o offset diretamente no timestamp retornado.
+    return _timestampBase + deltaSegundos + _offsetFusoHorario;
 }
 
 void scRelogioSincronizado::definirHoraManualmente(uint32_t timestampUnix) {

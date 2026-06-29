@@ -42,10 +42,20 @@ void scEncoderRotativo::resetarContagem() {
 
 int scEncoderRotativo::getDelta() {
     long atual = obterContagem();
-    if (atual != 0) {
-        resetarContagem();
+    
+    // O encoder KY-040 gera 4 transicoes de estado para cada clique fisico (detent).
+    // Entao calculamos quantos cliques completos ocorreram.
+    int cliquesCompletos = (int)(atual / 4);
+    
+    if (cliquesCompletos != 0) {
+        // Zera completamente a contagem para ignorar overshoots (passos residuais)
+        // Isso garante que inverter a direcao responda no primeiro clique!
+        noInterrupts();
+        _contagem = 0;
+        interrupts();
     }
-    return (int)atual;
+    
+    return cliquesCompletos;
 }
 
 // ====================================================================

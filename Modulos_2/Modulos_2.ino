@@ -37,10 +37,10 @@
 #define PIN_SDA        12
 #define PIN_SCL        13
 #define PIN_ENC_A      14
-#define PIN_ENC_B      3   // RX0
+#define PIN_ENC_B      5   // Trocado com o BTN2! O pino RX (3) tem conflito fisico com o chip USB!
 #define PIN_ENC_SW     0
 #define PIN_BTN1       2
-#define PIN_BTN2       5
+#define PIN_BTN2       3   // O Botao 2 foi para o pino RX (Ele tem forca mecanica para dar o curto pro GND)
 #define PIN_BUZZER     15
 
 // MAC Address do HUB Central (Exemplo Padrão)
@@ -53,11 +53,11 @@ scLogger logger;
 scArmazenamentoLocal armazenamento;
 scAvisosSonoros buzzer(PIN_BUZZER);
 scGestorDisplay display;
-U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2_obj(U8G2_R0, U8X8_PIN_NONE);
+U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2_obj(U8G2_R0, U8X8_PIN_NONE); // Alterado para SH1106 para remover ruidos na borda
 
 scRelogioSincronizado relogio;
 scConfigOTA ota;
-scMQTTLib mqtt("admin", "admin123");
+scMQTTLib mqtt("silastorres", "010203");
 scTransceptorESPNow transceptor;
 scGestorRede rede;
 scDespachanteComandos despachante;
@@ -77,7 +77,13 @@ scMonitorSaudeM2 saudeM2;
 scTelemetriaM2 telemetriaM2;
 
 // ==========================================
-// VARIÁVEIS GLOBAIS DE CONTROLE
+// VARIÁVEIS GLOBAIS DE OPERAÇÃO
+// ==========================================
+int limiarGas = 1000; // Valor padrão, pode ser sobrescrito pelo Backend
+int ultimoGasRecebido = 0; // Armazena a última leitura para gatilho instantâneo
+
+// ==========================================
+// FUNÇÕES AUXILIARES / CALLBACKS DE HARDWARE
 // ==========================================
 uint32_t tsUltimaTelemetria = 0;
 #define INTERVALO_TELEMETRIA_MS 60000 // Ping de saúde a cada 60s
@@ -145,6 +151,89 @@ void CallbackTratarComandosM2(const char* cmd, JsonVariant args) {
             }
         }
     }
+    else if (strcmp(cmd, "reset_kwh") == 0) {
+        if (args.containsKey("id")) {
+            int id = args["id"].as<int>();
+            reles.resetarConsumo(id);
+            buzzer.tocar(BIP_CURTO);
+            logger.info("RELES", "Consumo KWh zerado para o Relé " + String(id));
+        }
+    }
+    else if (strcmp(cmd, "tela_idle") == 0) {
+        if (args.containsKey("tela")) {
+            // Usa o scControladorMenu para definir e salvar a tela (já que o M2 não tem scGestorTelas independente)
+            int tela = args["tela"].as<int>();
+            // Hack temporário: O Controlador de Menu do M2 não tem um setter público para a watchface. 
+            // Precisaremos modificar o scControladorMenu.cpp/h em seguida.
+            controladorMenu.setWatchface(tela);
+            buzzer.tocar(BIP_CURTO);
+        }
+    }
+    else if (strcmp(cmd, "agendar_tarefa") == 0) {
+        if (args.containsKey("id_agd") && args.containsKey("rele") && args.containsKey("dia") && args.containsKey("hora") && args.containsKey("min") && args.containsKey("acao")) {
+            agendamentos.adicionarAgendamento(
+                args["id_agd"].as<int>(),
+                args["rele"].as<int>(),
+                args["dia"].as<String>(),
+                args["hora"].as<int>(),
+                args["min"].as<int>(),
+                args["acao"].as<bool>()
+            );
+            buzzer.tocar(BIP_CURTO);
+        }
+    }
+    else if (strcmp(cmd, "excluir_agendamento") == 0) {
+        if (args.containsKey("id_agd")) {
+            agendamentos.excluirAgendamento(args["id_agd"].as<int>());
+            buzzer.tocar(BIP_CURTO);
+        }
+    }
+    else if (strcmp(cmd, "configurar_limiar_gas") == 0) {
+        if (args.containsKey("limiar")) {
+            limiarGas = args["limiar"].as<int>();
+            armazenamento.salvarChaveValor("lim_gas", String(limiarGas));
+            armazenamento.commitarAlteracoes();
+            buzzer.tocar(BIP_LONGO); // Salvo na flash
+            logger.info("GAS", "Limiar de Gas atualizado para: " + String(limiarGas));
+            
+            // Re-avalia imediatamente com a última leitura conhecida!
+            if (ultimoGasRecebido > limiarGas) {
+                reles.acionarEmergenciaGas(true);
+                watchfaces.desenharAlertaGasTelaCheia();
+                buzzer.tocar(SIRENE_EMERGENCIA);
+            } else {
+                reles.acionarEmergenciaGas(false);
+            }
+        }
+    }
+    else if (strcmp(cmd, "repassar_telemetria") == 0) {
+        if (args["tipo"] == "M1") {
+            if (args.containsKey("temp")) {
+                telemetriaM2.setTempM1(args["temp"].as<float>());
+            }
+            
+            bool emergenciaForno = false;
+            if (args.containsKey("t_forno") && args.containsKey("alm_crit")) {
+                int tForno = args["t_forno"].as<int>();
+                int almCrit = args["alm_crit"].as<int>();
+                if (almCrit > 0 && tForno >= almCrit) {
+                    emergenciaForno = true;
+                }
+            }
+            
+            if (args.containsKey("gas")) {
+                ultimoGasRecebido = args["gas"].as<int>();
+            }
+            
+            if (ultimoGasRecebido > limiarGas || emergenciaForno) { 
+                reles.acionarEmergenciaGas(true);
+                watchfaces.desenharAlertaGasTelaCheia();
+                buzzer.tocar(SIRENE_EMERGENCIA);
+            } else {
+                reles.acionarEmergenciaGas(false);
+            }
+        }
+    }
 }
 
 // Callback de Rádio MESH/Broadcast: Permite o M2 escutar os gritos de socorro e dados do M1 (Forno)
@@ -158,18 +247,27 @@ void CallbackEscutaPromiscua(const char* macOrigem, const char* payload) {
             telemetriaM2.setTempM1(doc["dados"]["temp"].as<float>());
         }
         
-        // Avaliação Critica de Rede (P2P Mesh): Gatilho Direto de Gás
-        if (doc["dados"].containsKey("gas")) {
-            int gas = doc["dados"]["gas"].as<int>();
-            
-            if (gas > 1000) { // Limiar Critico (Pode ser puxado da config depois)
-                // Engatilha defesa de hardware M2 baseada nas escolhas do usuario (Ex: Cortar Geladeira ou Ligar Exaustor)
-                reles.acionarEmergenciaGas(true);
-                watchfaces.desenharAlertaGasTelaCheia();
-                buzzer.tocar(SIRENE_EMERGENCIA); // Acorda a casa!
-            } else {
-                reles.acionarEmergenciaGas(false); // Fim da crise
+        bool emergenciaForno = false;
+        if (doc["dados"].containsKey("t_forno") && doc["dados"].containsKey("alm_crit")) {
+            int tForno = doc["dados"]["t_forno"].as<int>();
+            int almCrit = doc["dados"]["alm_crit"].as<int>();
+            if (almCrit > 0 && tForno >= almCrit) {
+                emergenciaForno = true;
             }
+        }
+
+        // Avaliação Critica de Rede (P2P Mesh): Gatilho Direto de Gás ou Esquecimento
+        if (doc["dados"].containsKey("gas")) {
+            ultimoGasRecebido = doc["dados"]["gas"].as<int>();
+        }
+        
+        if (ultimoGasRecebido > limiarGas || emergenciaForno) { 
+            // Engatilha defesa de hardware M2 baseada nas escolhas do usuario (Ex: Cortar Geladeira ou Ligar Exaustor)
+            reles.acionarEmergenciaGas(true);
+            watchfaces.desenharAlertaGasTelaCheia();
+            buzzer.tocar(SIRENE_EMERGENCIA); // Acorda a casa!
+        } else {
+            reles.acionarEmergenciaGas(false); // Fim da crise
         }
     }
 }
@@ -178,25 +276,34 @@ void CallbackEscutaPromiscua(const char* macOrigem, const char* payload) {
 // SETUP (INJEÇÃO DE DEPENDÊNCIAS EM CASCATA)
 // ==========================================
 void setup() {
-    Serial.begin(115200);
+    // Permite que o GPIO 3 (RX) seja usado como INPUT_PULLUP pelo Encoder
+    Serial.begin(115200, SERIAL_8N1, SERIAL_TX_ONLY);
     delay(100);
 
     // 1. Logger nasce primeiro para blindar o "Fail Fast"
     logger.inicializar(true); 
     logger.info("BOOT", "=== Iniciando Módulo 2 (Relés & Encoder) ===");
 
-    // 2. I2C Wire mapeado manualmente no NodeMCU (Soft-I2C se necessario)
+    // 2. I2C Wire mapeado manualmente no NodeMCU
     Wire.begin(PIN_SDA, PIN_SCL);
+    Wire.setClock(100000); // 100kHz para máxima estabilidade (evita travamentos)
 
     // 3. Sistema de Vida e Hardware Base
     armazenamento.inicializar();
     //armazenamento.inicializar(&logger);
 
+    String valGas = armazenamento.obterValor("lim_gas");
+    if (valGas != "") limiarGas = valGas.toInt();
+
     saudeM2.inicializarLocal(&logger, 0x3C);
     saudeM2.inicializar(5, &armazenamento); // Watchdog brutal de 5s para loops travados
     
+    // Inicia a base de tempo para garantir que a watchface tenha a hora (GMT-3 = -10800s)
+    relogio.inicializar(-10800);
+    
     // 4. Hardware Local Simples
     buzzer.inicializar();
+    u8g2_obj.setBusClock(100000); // Forca 100kHz no driver do OLED
     u8g2_obj.begin();
     display.inicializar(&u8g2_obj);
     encoder.inicializar();
@@ -211,6 +318,9 @@ void setup() {
     // 5. Setup de Rede e Nuvem
     rede.inicializar("REDE", "SENHA123", &logger);
     rede.configurarComoHub(false); 
+    
+    mqtt.iniciar(); // Previne o Exception 28
+    rede.injetarMQTT(&mqtt); // Previne crashes de logica de rede sem MQTT
     
     // 6. Inteligência e Motores do M2
     reles.inicializar(&logger, &armazenamento, &relogio, PIN_R1, PIN_R2);
@@ -241,12 +351,19 @@ void loop() {
 
     // Motores de Fundo (Conexão e I/O)
     rede.atualizar();
-    if (!rede.estaEmFallback()) {
+    if (!rede.estaEmFallback() && WiFi.status() == WL_CONNECTED) {
         mqtt.manterConexao(); 
+        
+        // Puxa as mensagens recebidas via MQTT e entrega para o Cérebro processar
+        if (mqtt.temComando()) {
+            despachante.processarPayload("MQTT_SERVER", mqtt.obterComando().c_str());
+        }
     }
     // transceptor.atualizar(); // Atualiza fila do ESP-NOW
     
     // UI e Atores Físicos
+    relogio.atualizar(); // Coleta NTP em background quando o WiFi conectar
+    buzzer.atualizar(); // Essencial para parar o som de alerta inicial
     botaoEncoder.atualizar();
     botao1.atualizar();
     botao2.atualizar();

@@ -45,6 +45,9 @@ public:
 
     // O Motor que escoa a fila rotacionando ponteiros e processando no Super Loop.
     void processar();
+
+    // Envia um pacote para todos os módulos (Broadcast) via rádio ESP-NOW
+    void enviarBroadcast(const char* payloadJson);
 };
 
 #endif // SC_ROTEADOR_BRIDGE_M3_H

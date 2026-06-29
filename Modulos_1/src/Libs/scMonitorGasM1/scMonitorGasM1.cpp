@@ -3,7 +3,7 @@
 scMonitorGasM1::scMonitorGasM1() {
     _logger = nullptr;
     _pinoAnalogico = A0;
-    _limiteGas = 500; // Valor default conservador inicial
+    _limiteGas = 2000; // Limiar bem alto para evitar falsos positivos na inicializacao
     _indiceLeitura = 0;
     _somaLeituras = 0;
     _mediaAtual = 0;

@@ -71,3 +71,14 @@ void scRTCFisicoM3::ajustarDataHora(uint32_t timestampUnix) {
 bool scRTCFisicoM3::isAtivo() const {
     return _ativo;
 }
+
+String scRTCFisicoM3::obterHoraFormatada() {
+    if (!_ativo) {
+        return "--:--";
+    }
+    
+    DateTime agora = _rtc.now();
+    char buf[6];
+    snprintf(buf, sizeof(buf), "%02d:%02d", agora.hour(), agora.minute());
+    return String(buf);
+}

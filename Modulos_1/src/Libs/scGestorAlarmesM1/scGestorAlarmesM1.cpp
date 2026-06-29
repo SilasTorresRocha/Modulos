@@ -11,6 +11,8 @@ scGestorAlarmesM1::scGestorAlarmesM1() {
     _fornoLigado = false;
     _vazamentoGas = false;
     _inicioFornoMillis = 0;
+    _inicioPrepMillis = 0;
+    _almPrepAtivo = false;
     
     _alarmeAtual = SILENCIO;
 }
@@ -32,12 +34,28 @@ void scGestorAlarmesM1::inicializar(scLogger* logger, scAvisosSonoros* avisosSon
     _logger->info("ALM_M1", "Gestor de Alarmes inicializado com sucesso.");
 }
 
-void scGestorAlarmesM1::setAlarmes(uint32_t preparoSegundos, uint32_t criticoSegundos) {
-    if (_almPrepSegundos != preparoSegundos || _almCritSegundos != criticoSegundos) {
-        _almPrepSegundos = preparoSegundos;
+void scGestorAlarmesM1::setAlarmeCritico(uint32_t criticoSegundos) {
+    if (_almCritSegundos != criticoSegundos) {
         _almCritSegundos = criticoSegundos;
-        _logger->info("ALM_M1", "Limites atualizados -> Preparo: " + String(_almPrepSegundos) + "s, Critico: " + String(_almCritSegundos) + "s");
+        _logger->info("ALM_M1", "Limite Critico atualizado para: " + String(_almCritSegundos) + "s");
     }
+}
+
+void scGestorAlarmesM1::iniciarTimerPreparo(uint32_t preparoSegundos) {
+    if (preparoSegundos == 0) {
+        pararTimerPreparo();
+        return;
+    }
+    _almPrepSegundos = preparoSegundos;
+    _inicioPrepMillis = millis();
+    _almPrepAtivo = true;
+    _logger->info("ALM_M1", "Timer de Preparo INDEPENDENTE Iniciado: " + String(_almPrepSegundos) + "s");
+}
+
+void scGestorAlarmesM1::pararTimerPreparo() {
+    _almPrepSegundos = 0;
+    _almPrepAtivo = false;
+    _logger->info("ALM_M1", "Timer de Preparo Cancelado/Desativado.");
 }
 
 void scGestorAlarmesM1::setEstadoForno(bool ligado) {
@@ -63,13 +81,19 @@ void scGestorAlarmesM1::processar() {
         // Prioridade 1: Risco Iminente
         alarmeDesejado = SIRENE_EMERGENCIA;
     } else if (_fornoLigado) {
-        // Prioridade 2: Cálculos de limites do Forno
+        // Prioridade 2: Cálculos de limite do Forno (Esquecimento/Perigo Térmico)
         uint32_t uptimeSegundos = (millis() - _inicioFornoMillis) / 1000;
 
-        // Alarmes configurados com 0 (zero) desativam a feature
         if (_almCritSegundos > 0 && uptimeSegundos >= _almCritSegundos) {
             alarmeDesejado = SIRENE_EMERGENCIA;
-        } else if (_almPrepSegundos > 0 && uptimeSegundos >= _almPrepSegundos) {
+        }
+    } 
+    
+    // Prioridade 3: Temporizador Independente (Kitchen Timer)
+    // Se não tiver nenhum alarme de emergência tocando, verifica o timer.
+    if (alarmeDesejado == SILENCIO && _almPrepAtivo && _almPrepSegundos > 0) {
+        uint32_t tempoTimer = (millis() - _inicioPrepMillis) / 1000;
+        if (tempoTimer >= _almPrepSegundos) {
             alarmeDesejado = ALARME_TEMPORIZADOR;
         }
     }

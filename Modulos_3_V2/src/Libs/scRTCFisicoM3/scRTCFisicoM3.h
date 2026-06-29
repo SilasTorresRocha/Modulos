@@ -34,6 +34,9 @@ public:
 
     // Retorna se o modulo fisico esta operante
     bool isAtivo() const;
+
+    // Retorna a hora atual formatada (HH:MM)
+    String obterHoraFormatada();
 };
 
 #endif // SC_RTC_FISICO_M3_H

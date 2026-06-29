@@ -27,6 +27,7 @@ private:
     uint32_t _timestampBase;       // O último timestamp UNIX validado (ex: 1718000000)
     uint32_t _millisSincronizacao; // O millis() exato do momento em que sincronizamos
     bool _sincronizado;
+    long _offsetFusoHorario;
 };
 
 #endif // SC_RELOGIO_SINCRONIZADO_H

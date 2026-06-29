@@ -57,6 +57,9 @@ public:
 
     // Retorna a cor da saúde de um Node Específico
     EstadoNo obterEstado(const char* mac);
+
+    // Retorna a cor da saúde por Tipo de Módulo (Ex: "M1")
+    EstadoNo obterEstadoPorTipo(const char* tipo) const;
 };
 
 #endif // SC_RADAR_ECOSSISTEMA_M3_H
