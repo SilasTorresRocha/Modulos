@@ -334,8 +334,8 @@ function enviarCfgM1Tela() {
     enviarCfgBackend({
         mac_origem: "HUB",
         mac_destino: macM1 || "ALL",
-        cmd: "tela_idle",
-        args: { tela: val }
+        cmd: "configurar_operacao",
+        args: { tela_idle: val }
     });
 }
 
@@ -373,7 +373,7 @@ function enviarCfgM2Gas() {
     const val = parseInt(document.getElementById('cfg-m2-gas').value);
     enviarCfgBackend({
         mac_origem: "HUB",
-        mac_destino: macM2 || "ALL",
+        mac_destino: "ALL", // Dispara para M1 e M2 simultaneamente!
         cmd: "configurar_limiar_gas",
         args: { limiar: val }
     });

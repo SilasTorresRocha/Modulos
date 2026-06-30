@@ -129,10 +129,8 @@ void scLeitorTermicoM1::processar() {
                 }
             } else {
                 // Para deduzir o Desligar: 
-                // Condição 1: Esfriando comprovadamente (derivada negativa) E saiu do pico de calor.
-                // Condição 2: Temperatura caiu abaixo do limite menos a histerese (Mesmo se a derivada for zero e estabilizou no ambiente).
-                if ((_derivadaTermica <= -0.1 && _temperaturaAtual < _limiteAbsoluto) || 
-                    _temperaturaAtual < (_limiteAbsoluto - histerese)) {
+                // A temperatura caiu ligeiramente abaixo do limite (anti-ruído de 0.5) E não está mais subindo.
+                if (_temperaturaAtual < (_limiteAbsoluto - 0.5) && _derivadaTermica <= 0.05) {
                     _fornoLigado = false;
                 }
             }

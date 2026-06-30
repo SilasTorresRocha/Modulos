@@ -83,15 +83,20 @@ void onVazamentoGas(bool detectado, uint16_t nivelAtual) {
                 "VAZAMENTO CONFIRMADO! Atirando trigger P2P para o Modulo 2!");
     String payload = "{\"mac_destino\":\"" + macAlvo + "\",\"tipo\":\"M1\",\"dados\":{\"gas\": 1500}}";
     transceptor.enviarPacote(macBytes, payload);
+    telemetria.despacharTelemetriaM1(); // Força update imediato na nuvem/Hub!
   } else {
     logger.info("M1_CORE", "Gas estabilizado. Enviando trigger P2P de alivio.");
     String payload = "{\"mac_destino\":\"" + macAlvo + "\",\"tipo\":\"M1\",\"dados\":{\"gas\": 0}}";
     transceptor.enviarPacote(macBytes, payload);
+    telemetria.despacharTelemetriaM1(); // Avisa a nuvem que passou
   }
 }
 
 // Quando o DS18B20 entende que o forno ligou (por Derivada ou Absoluto)
-void onEstadoForno(bool ligado) { gestorAlarmes.setEstadoForno(ligado); }
+void onEstadoForno(bool ligado) { 
+    gestorAlarmes.setEstadoForno(ligado); 
+    telemetria.despacharTelemetriaM1(); // Informa o Hub imediatamente sobre a mudanca de status
+}
 
 void CallbackTratarComandosM1(const char* cmd, JsonVariant args) {
     if (strcmp(cmd, "configurar_operacao") == 0) {

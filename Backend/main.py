@@ -36,7 +36,7 @@ async def hub_router_task():
     Busca telemetria a cada 60 segundos e repassa pro M2 se M1 atualizou.
     """
     global ultima_temp_roteada, ultimo_gas_roteado
-    logger.info("Iniciando HUB Virtual no Backend (Poller 60s)...")
+    logger.info("Iniciando HUB Virtual no Backend (Poller 10s)...")
     
     async with httpx.AsyncClient() as client:
         while True:
@@ -76,6 +76,12 @@ async def hub_router_task():
                                     if "t_forno" in dados_m1: cmd_router["args"]["t_forno"] = dados_m1["t_forno"]
                                     if "alm_crit" in dados_m1: cmd_router["args"]["alm_crit"] = dados_m1["alm_crit"]
                                     
+                                    # Hack de Segurança (Garantia de Disparo M2)
+                                    # O usuário solicitou que o backend "minta" sobre o gás para forçar o M2 a entrar em emergência, 
+                                    # caso a versão do firmware do M2 física esteja dessincronizada.
+                                    if dados_m1.get("t_forno", 0) >= dados_m1.get("alm_crit", 999999) and dados_m1.get("alm_crit", 0) > 0:
+                                        cmd_router["args"]["gas"] = 9999
+                                    
                                     # Dispara o POST
                                     url_post = f"{BASE_URL}/comandos/enviar_externo?chave_api={API_KEY}"
                                     data_post = {"comando": json.dumps(cmd_router)}
@@ -90,8 +96,8 @@ async def hub_router_task():
             except Exception as e:
                 logger.error(f"Erro no loop do HUB Virtual: {e}")
                 
-            # Dorme por 60 segundos
-            await asyncio.sleep(60)
+            # Dorme por 10 segundos
+            await asyncio.sleep(10)
 
 @app.on_event("startup")
 async def startup_event():
